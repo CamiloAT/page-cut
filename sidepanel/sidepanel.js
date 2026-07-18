@@ -4,6 +4,7 @@ const scanStatus = document.getElementById("scanStatus");
 const elementList = document.getElementById("elementList");
 const shortcutList = document.getElementById("shortcutList");
 const currentUrl = document.getElementById("currentUrl");
+const shortcutCount = document.getElementById("shortcutCount");
 const assignModal = document.getElementById("assignModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
 const closeModalBtn = document.getElementById("closeModal");
@@ -16,21 +17,32 @@ const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
 
 let currentOrigin = "";
+let currentTabId = null;
 let pendingPickedData = null;
 let isRecording = false;
+let recordedKeys = null;
 
-async function init() {
+async function updateCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) return;
+
   try {
     const url = new URL(tab.url);
-    currentOrigin = url.origin;
-    currentUrl.textContent = url.hostname;
-    currentUrl.title = url.href;
+    const newOrigin = url.origin;
+    currentTabId = tab.id;
+
+    if (newOrigin !== currentOrigin) {
+      currentOrigin = newOrigin;
+      currentUrl.textContent = url.hostname;
+      currentUrl.title = url.href;
+      loadShortcuts();
+    }
   } catch {
-    currentUrl.textContent = "URL no válida";
+    currentOrigin = "";
+    currentUrl.textContent = "Navegador interno";
+    currentUrl.title = "";
+    shortcutList.innerHTML = '<p class="empty-state">No disponible en esta página</p>';
   }
-  loadShortcuts();
 }
 
 function switchTab(tabName) {
@@ -45,7 +57,11 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 
 pickBtn.addEventListener("click", () => {
-  scanStatus.textContent = "Mové el mouse sobre la página y hacé clic en un elemento...";
+  if (!currentOrigin) {
+    showToast("No se detectó la página actual");
+    return;
+  }
+  scanStatus.textContent = "Mové el mouse y hacé clic en un elemento...";
   pickBtn.disabled = true;
   chrome.runtime.sendMessage({ action: "startPickMode" }, (response) => {
     if (response?.error) {
@@ -56,6 +72,10 @@ pickBtn.addEventListener("click", () => {
 });
 
 scanBtn.addEventListener("click", async () => {
+  if (!currentOrigin) {
+    showToast("No se detectó la página actual");
+    return;
+  }
   scanBtn.disabled = true;
   scanStatus.textContent = "Escaneando...";
   chrome.runtime.sendMessage({ action: "scanElements" }, (response) => {
@@ -183,10 +203,17 @@ confirmAssign.addEventListener("click", () => {
 });
 
 function loadShortcuts() {
+  if (!currentOrigin) {
+    shortcutList.innerHTML = '<p class="empty-state">No disponible</p>';
+    shortcutCount.textContent = "";
+    return;
+  }
   chrome.runtime.sendMessage(
     { action: "getShortcuts", url: currentOrigin },
     (response) => {
-      renderShortcuts(response?.shortcuts || []);
+      const shortcuts = response?.shortcuts || [];
+      renderShortcuts(shortcuts);
+      shortcutCount.textContent = shortcuts.length > 0 ? `${shortcuts.length} shortcut${shortcuts.length > 1 ? "s" : ""}` : "";
     }
   );
 }
@@ -244,6 +271,19 @@ chrome.runtime.onMessage.addListener((message) => {
     pickBtn.disabled = false;
     scanStatus.textContent = "";
   }
+  if (message.action === "tabUpdated") {
+    updateCurrentTab();
+  }
+});
+
+chrome.tabs.onActivated.addListener(() => {
+  updateCurrentTab();
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (tabId === currentTabId && changeInfo.status === "complete") {
+    updateCurrentTab();
+  }
 });
 
 function showToast(msg) {
@@ -264,4 +304,4 @@ function escapeAttr(str) {
   return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-init();
+updateCurrentTab();

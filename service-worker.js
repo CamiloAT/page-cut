@@ -21,6 +21,23 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.url) return;
+    const url = new URL(tab.url);
+    const data = await chrome.storage.local.get("shortcuts");
+    const allShortcuts = data.shortcuts || {};
+    const shortcuts = allShortcuts[url.origin] || [];
+    if (shortcuts.length > 0) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content.js"],
+      });
+    }
+  } catch (e) {}
+});
+
 async function ensureContentScript(tabId) {
   try {
     await chrome.scripting.executeScript({
