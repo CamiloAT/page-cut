@@ -1,19 +1,25 @@
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error(error));
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((error) => console.error("Side panel error:", error));
+});
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    const url = new URL(tab.url);
-    const shortcuts = await getShortcutsForUrl(url.origin);
+    try {
+      const url = new URL(tab.url);
+      const data = await chrome.storage.local.get("shortcuts");
+      const allShortcuts = data.shortcuts || {};
+      const shortcuts = allShortcuts[url.origin] || [];
 
-    if (shortcuts && shortcuts.length > 0) {
-      await chrome.scripting
-        .executeScript({
+      if (shortcuts.length > 0) {
+        await chrome.scripting.executeScript({
           target: { tabId },
           files: ["content.js"],
-        })
-        .catch(() => {});
+        });
+      }
+    } catch (e) {
+      // ignore
     }
   }
 });
@@ -38,74 +44,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.action === "executeAction") {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (!tabs[0]) return;
-      await chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        func: executeShortcutAction,
-        args: [message.selector, message.type],
+  if (message.action === "saveShortcut") {
+    const { url, shortcut } = message;
+    chrome.storage.local.get("shortcuts", (data) => {
+      const allShortcuts = data.shortcuts || {};
+      if (!allShortcuts[url]) {
+        allShortcuts[url] = [];
+      }
+      const existingIndex = allShortcuts[url].findIndex(
+        (s) => s.key === shortcut.key && s.modifiers === shortcut.modifiers
+      );
+      if (existingIndex >= 0) {
+        allShortcuts[url][existingIndex] = shortcut;
+      } else {
+        allShortcuts[url].push(shortcut);
+      }
+      chrome.storage.local.set({ shortcuts: allShortcuts }, () => {
+        sendResponse({ success: true });
       });
     });
     return true;
   }
 
-  if (message.action === "saveShortcut") {
-    const { url, shortcut } = message;
-    const data = await chrome.storage.local.get("shortcuts");
-    const allShortcuts = data.shortcuts || {};
-
-    if (!allShortcuts[url]) {
-      allShortcuts[url] = [];
-    }
-
-    const existingIndex = allShortcuts[url].findIndex(
-      (s) => s.key === shortcut.key && s.modifiers === shortcut.modifiers
-    );
-
-    if (existingIndex >= 0) {
-      allShortcuts[url][existingIndex] = shortcut;
-    } else {
-      allShortcuts[url].push(shortcut);
-    }
-
-    await chrome.storage.local.set({ shortcuts: allShortcuts });
-    sendResponse({ success: true });
-    return true;
-  }
-
   if (message.action === "getShortcuts") {
     const { url } = message;
-    const data = await chrome.storage.local.get("shortcuts");
-    const allShortcuts = data.shortcuts || {};
-    sendResponse({ shortcuts: allShortcuts[url] || [] });
+    chrome.storage.local.get("shortcuts", (data) => {
+      const allShortcuts = data.shortcuts || {};
+      sendResponse({ shortcuts: allShortcuts[url] || [] });
+    });
     return true;
   }
 
   if (message.action === "deleteShortcut") {
     const { url, key, modifiers } = message;
-    const data = await chrome.storage.local.get("shortcuts");
-    const allShortcuts = data.shortcuts || {};
-
-    if (allShortcuts[url]) {
-      allShortcuts[url] = allShortcuts[url].filter(
-        (s) => !(s.key === key && s.modifiers === modifiers)
-      );
-      if (allShortcuts[url].length === 0) {
-        delete allShortcuts[url];
+    chrome.storage.local.get("shortcuts", (data) => {
+      const allShortcuts = data.shortcuts || {};
+      if (allShortcuts[url]) {
+        allShortcuts[url] = allShortcuts[url].filter(
+          (s) => !(s.key === key && s.modifiers === modifiers)
+        );
+        if (allShortcuts[url].length === 0) {
+          delete allShortcuts[url];
+        }
+        chrome.storage.local.set({ shortcuts: allShortcuts }, () => {
+          sendResponse({ success: true });
+        });
+      } else {
+        sendResponse({ success: true });
       }
-      await chrome.storage.local.set({ shortcuts: allShortcuts });
-    }
-    sendResponse({ success: true });
+    });
     return true;
   }
 });
-
-async function getShortcutsForUrl(origin) {
-  const data = await chrome.storage.local.get("shortcuts");
-  const allShortcuts = data.shortcuts || {};
-  return allShortcuts[origin] || [];
-}
 
 function scanPageElements() {
   const selectors =
@@ -115,49 +105,32 @@ function scanPageElements() {
 
   elements.forEach((el, index) => {
     if (!el.offsetParent && el.tagName !== "BODY") return;
-
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
     let selector = "";
     if (el.id) {
       selector = `#${el.id}`;
-    } else if (el.name) {
-      selector = `${el.tagName.toLowerCase()}[name="${el.name}"]`;
     } else {
       const parent = el.parentElement;
       const siblings = parent
         ? Array.from(parent.children).filter((c) => c.tagName === el.tagName)
         : [];
       const siblingIndex = siblings.indexOf(el);
-      selector = `${parent ? parent.tagName.toLowerCase() : ""} > ${el.tagName.toLowerCase()}:nth-of-type(${siblingIndex + 1})`;
+      selector = parent
+        ? `${parent.tagName.toLowerCase()} > ${el.tagName.toLowerCase()}:nth-of-type(${siblingIndex + 1})`
+        : el.tagName.toLowerCase();
     }
 
     results.push({
       index,
       tag: el.tagName.toLowerCase(),
-      text: (el.textContent || el.value || el.alt || el.title || "").trim().substring(0, 50),
+      text: (el.textContent || el.value || el.alt || el.title || "")
+        .trim()
+        .substring(0, 50),
       selector,
-      type: el.type || null,
-      href: el.href || null,
     });
   });
 
   return results;
-}
-
-function executeShortcutAction(selector, type) {
-  const el = document.querySelector(selector);
-  if (!el) {
-    console.warn("Page Cut: Elemento no encontrado:", selector);
-    return;
-  }
-
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  if (type === "click") {
-    setTimeout(() => {
-      el.click();
-    }, 300);
-  }
 }
