@@ -106,7 +106,7 @@
     `;
     pickInstructions.innerHTML = `
       <span style="color:#a8d5a2;font-weight:600;">Page Cut</span>
-      <span>Haz clic en cualquier elemento</span>
+      <span>Haz clic en un botón o link</span>
       <span style="opacity:0.5">|</span>
       <span style="opacity:0.7">ESC para cancelar</span>
     `;
@@ -138,13 +138,50 @@
     document.removeEventListener("keydown", onPickKeydown, true);
   }
 
+  function isClickable(el) {
+    if (!el) return false;
+    const tag = el.tagName.toLowerCase();
+    const role = el.getAttribute("role");
+    const onclick = el.hasAttribute("onclick");
+    const cursor = window.getComputedStyle(el).cursor;
+
+    if (tag === "a" && el.href) return true;
+    if (tag === "button") return true;
+    if (tag === "input") {
+      const type = (el.type || "").toLowerCase();
+      if (["button", "submit", "reset", "image"].includes(type)) return true;
+    }
+    if (role === "button" || role === "link" || role === "menuitem" || role === "tab" || role === "option") return true;
+    if (onclick) return true;
+    if (cursor === "pointer") return true;
+    if (el.closest("a[href]")) return true;
+
+    return false;
+  }
+
+  function findClickable(el) {
+    if (isClickable(el)) return el;
+    let current = el.parentElement;
+    while (current && current !== document.body) {
+      if (isClickable(current)) return current;
+      current = current.parentElement;
+    }
+    return null;
+  }
+
   function onPickMouseMove(e) {
     if (!pickHighlight) return;
     pickOverlay.style.pointerEvents = "none";
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const raw = document.elementFromPoint(e.clientX, e.clientY);
     pickOverlay.style.pointerEvents = "";
 
-    if (!el || el === pickOverlay || el === pickInstructions) {
+    if (!raw || raw === pickOverlay || raw === pickInstructions) {
+      pickHighlight.style.display = "none";
+      return;
+    }
+
+    const el = findClickable(raw);
+    if (!el) {
       pickHighlight.style.display = "none";
       return;
     }
@@ -162,10 +199,13 @@
     e.stopPropagation();
 
     pickOverlay.style.pointerEvents = "none";
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const raw = document.elementFromPoint(e.clientX, e.clientY);
     pickOverlay.style.pointerEvents = "";
 
-    if (!el || el === pickOverlay || el === pickInstructions) return;
+    if (!raw || raw === pickOverlay || raw === pickInstructions) return;
+
+    const el = findClickable(raw);
+    if (!el) return;
 
     const data = {
       selector: getFieldSelector(el),
