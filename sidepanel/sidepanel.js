@@ -1,0 +1,261 @@
+const scanBtn = document.getElementById("scanBtn");
+const scanStatus = document.getElementById("scanStatus");
+const elementList = document.getElementById("elementList");
+const shortcutList = document.getElementById("shortcutList");
+const currentUrl = document.getElementById("currentUrl");
+const assignModal = document.getElementById("assignModal");
+const modalBackdrop = document.getElementById("modalBackdrop");
+const closeModal = document.getElementById("closeModal");
+const selectedElement = document.getElementById("selectedElement");
+const keyDisplay = document.getElementById("keyDisplay");
+const actionType = document.getElementById("actionType");
+const cancelAssign = document.getElementById("cancelAssign");
+const confirmAssign = document.getElementById("confirmAssign");
+const toast = document.getElementById("toast");
+const toastMessage = document.getElementById("toastMessage");
+
+let currentOrigin = "";
+let selectedElementData = null;
+let recordedKeys = null;
+let isRecording = false;
+
+async function init() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url) return;
+
+  try {
+    const url = new URL(tab.url);
+    currentOrigin = url.origin;
+    currentUrl.textContent = url.hostname;
+    currentUrl.title = url.href;
+  } catch {
+    currentUrl.textContent = "URL no válida";
+  }
+
+  loadShortcuts();
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+  document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
+
+  document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
+  document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+}
+
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+});
+
+scanBtn.addEventListener("click", async () => {
+  scanBtn.disabled = true;
+  scanStatus.textContent = "Escaneando elementos...";
+
+  chrome.runtime.sendMessage({ action: "scanElements" }, (response) => {
+    scanBtn.disabled = false;
+
+    if (response?.error) {
+      scanStatus.textContent = "Error al escanear";
+      showToast("No se pudieron leer los elementos");
+      return;
+    }
+
+    const elements = response?.elements || [];
+    scanStatus.textContent = `${elements.length} elementos encontrados`;
+    renderElements(elements);
+  });
+});
+
+function renderElements(elements) {
+  if (elements.length === 0) {
+    elementList.innerHTML = '<p class="empty-state">No se encontraron elementos clickeables</p>';
+    return;
+  }
+
+  elementList.innerHTML = elements
+    .map(
+      (el) => `
+    <div class="element-card" data-index="${el.index}" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}">
+      <div class="element-icon">${el.tag.substring(0, 3)}</div>
+      <div class="element-info">
+        <div class="element-text">${escapeHtml(el.text) || "Sin texto"}</div>
+        <div class="element-selector">${escapeHtml(el.selector)}</div>
+      </div>
+      <div class="element-actions">
+        <button class="btn btn-primary btn-assign" style="padding: 6px 10px; font-size: 11px;">
+          Asignar
+        </button>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  elementList.querySelectorAll(".btn-assign").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const card = btn.closest(".element-card");
+      openAssignModal({
+        selector: card.dataset.selector,
+        text: card.dataset.text,
+        tag: card.dataset.tag,
+      });
+    });
+  });
+}
+
+function openAssignModal(element) {
+  selectedElementData = element;
+  recordedKeys = null;
+
+  selectedElement.innerHTML = `<strong>${element.tag}</strong> — ${escapeHtml(element.text) || "Sin texto"}`;
+  keyDisplay.innerHTML = '<span class="key-placeholder">Esperando teclas...</span>';
+  keyDisplay.classList.add("recording");
+  confirmAssign.disabled = true;
+  isRecording = true;
+
+  assignModal.classList.remove("hidden");
+}
+
+function closeAssignModal() {
+  assignModal.classList.add("hidden");
+  keyDisplay.classList.remove("recording");
+  isRecording = false;
+  selectedElementData = null;
+  recordedKeys = null;
+}
+
+modalBackdrop.addEventListener("click", closeAssignModal);
+closeModal.addEventListener("click", closeAssignModal);
+cancelAssign.addEventListener("click", closeAssignModal);
+
+document.addEventListener("keydown", (e) => {
+  if (!isRecording) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+
+  const modifiers = [];
+  if (e.ctrlKey) modifiers.push("Ctrl");
+  if (e.shiftKey) modifiers.push("Shift");
+  if (e.altKey) modifiers.push("Alt");
+  if (e.metaKey) modifiers.push("Meta");
+
+  if (modifiers.length === 0) {
+    showToast("Usa al menos una tecla modificadora (Ctrl, Shift, Alt)");
+    return;
+  }
+
+  recordedKeys = {
+    key: e.key.toUpperCase(),
+    modifiers: modifiers.join("+"),
+    display: [...modifiers, e.key.toUpperCase()].join(" + "),
+  };
+
+  keyDisplay.classList.remove("recording");
+  keyDisplay.innerHTML = `<div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
+  confirmAssign.disabled = false;
+  isRecording = false;
+});
+
+confirmAssign.addEventListener("click", () => {
+  if (!recordedKeys || !selectedElementData) return;
+
+  const shortcut = {
+    key: recordedKeys.key,
+    modifiers: recordedKeys.modifiers,
+    display: recordedKeys.display,
+    selector: selectedElementData.selector,
+    text: selectedElementData.text,
+    tag: selectedElementData.tag,
+    action: actionType.checked ? "click" : "scroll",
+  };
+
+  chrome.runtime.sendMessage(
+    { action: "saveShortcut", url: currentOrigin, shortcut },
+    (response) => {
+      if (response?.success) {
+        showToast("Shortcut guardado");
+        closeAssignModal();
+        loadShortcuts();
+      }
+    }
+  );
+});
+
+function loadShortcuts() {
+  chrome.runtime.sendMessage(
+    { action: "getShortcuts", url: currentOrigin },
+    (response) => {
+      const shortcuts = response?.shortcuts || [];
+      renderShortcuts(shortcuts);
+    }
+  );
+}
+
+function renderShortcuts(shortcuts) {
+  if (shortcuts.length === 0) {
+    shortcutList.innerHTML =
+      '<p class="empty-state">No hay shortcuts configurados para esta página</p>';
+    return;
+  }
+
+  shortcutList.innerHTML = shortcuts
+    .map(
+      (s) => `
+    <div class="shortcut-card">
+      <div class="shortcut-info">
+        <div class="shortcut-text">${escapeHtml(s.text) || s.tag}</div>
+        <div class="shortcut-keys">
+          ${s.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}
+        </div>
+      </div>
+      <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        </svg>
+      </button>
+    </div>
+  `
+    )
+    .join("");
+
+  shortcutList.querySelectorAll(".btn-delete-shortcut").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      chrome.runtime.sendMessage(
+        {
+          action: "deleteShortcut",
+          url: currentOrigin,
+          key: btn.dataset.key,
+          modifiers: btn.dataset.modifiers,
+        },
+        () => {
+          showToast("Shortcut eliminado");
+          loadShortcuts();
+        }
+      );
+    });
+  });
+}
+
+function showToast(message) {
+  toastMessage.textContent = message;
+  toast.classList.remove("hidden");
+  setTimeout(() => toast.classList.add("hidden"), 2000);
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  if (!str) return "";
+  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+init();

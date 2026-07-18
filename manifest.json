@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Page Cut",
+  "version": "1.0",
+  "description": "Asigna shortcuts personalizados a elementos de cualquier página",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "Abrir Page Cut"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Abrir Page Cut"
+    }
+  }
+}
