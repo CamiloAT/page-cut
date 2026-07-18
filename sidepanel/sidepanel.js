@@ -1,3 +1,4 @@
+const pickBtn = document.getElementById("pickBtn");
 const scanBtn = document.getElementById("scanBtn");
 const scanStatus = document.getElementById("scanStatus");
 const elementList = document.getElementById("elementList");
@@ -5,8 +6,8 @@ const shortcutList = document.getElementById("shortcutList");
 const currentUrl = document.getElementById("currentUrl");
 const assignModal = document.getElementById("assignModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
-const closeModal = document.getElementById("closeModal");
-const selectedElement = document.getElementById("selectedElement");
+const closeModalBtn = document.getElementById("closeModal");
+const selectedElementDiv = document.getElementById("selectedElement");
 const keyDisplay = document.getElementById("keyDisplay");
 const actionType = document.getElementById("actionType");
 const cancelAssign = document.getElementById("cancelAssign");
@@ -15,14 +16,12 @@ const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
 
 let currentOrigin = "";
-let selectedElementData = null;
-let recordedKeys = null;
+let pendingPickedData = null;
 let isRecording = false;
 
 async function init() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) return;
-
   try {
     const url = new URL(tab.url);
     currentOrigin = url.origin;
@@ -31,14 +30,12 @@ async function init() {
   } catch {
     currentUrl.textContent = "URL no válida";
   }
-
   loadShortcuts();
 }
 
 function switchTab(tabName) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
-
   document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
   document.getElementById(`tab-${tabName}`).classList.remove("hidden");
 }
@@ -47,19 +44,26 @@ document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => switchTab(tab.dataset.tab));
 });
 
+pickBtn.addEventListener("click", () => {
+  scanStatus.textContent = "Mové el mouse sobre la página y hacé clic en un elemento...";
+  pickBtn.disabled = true;
+  chrome.runtime.sendMessage({ action: "startPickMode" }, (response) => {
+    if (response?.error) {
+      scanStatus.textContent = "Error al iniciar pick mode";
+      pickBtn.disabled = false;
+    }
+  });
+});
+
 scanBtn.addEventListener("click", async () => {
   scanBtn.disabled = true;
-  scanStatus.textContent = "Escaneando elementos...";
-
+  scanStatus.textContent = "Escaneando...";
   chrome.runtime.sendMessage({ action: "scanElements" }, (response) => {
     scanBtn.disabled = false;
-
     if (response?.error) {
       scanStatus.textContent = "Error al escanear";
-      showToast("No se pudieron leer los elementos");
       return;
     }
-
     const elements = response?.elements || [];
     scanStatus.textContent = `${elements.length} elementos encontrados`;
     renderElements(elements);
@@ -68,26 +72,22 @@ scanBtn.addEventListener("click", async () => {
 
 function renderElements(elements) {
   if (elements.length === 0) {
-    elementList.innerHTML = '<p class="empty-state">No se encontraron elementos clickeables</p>';
+    elementList.innerHTML = '<p class="empty-state">No se encontraron elementos</p>';
     return;
   }
-
   elementList.innerHTML = elements
     .map(
       (el) => `
-    <div class="element-card" data-index="${el.index}" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}">
+    <div class="element-card" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}">
       <div class="element-icon">${el.tag.substring(0, 3)}</div>
       <div class="element-info">
         <div class="element-text">${escapeHtml(el.text) || "Sin texto"}</div>
         <div class="element-selector">${escapeHtml(el.selector)}</div>
       </div>
       <div class="element-actions">
-        <button class="btn btn-primary btn-assign" style="padding: 6px 10px; font-size: 11px;">
-          Asignar
-        </button>
+        <button class="btn btn-primary btn-assign" style="padding:6px 10px;font-size:11px;">Asignar</button>
       </div>
-    </div>
-  `
+    </div>`
     )
     .join("");
 
@@ -99,21 +99,20 @@ function renderElements(elements) {
         selector: card.dataset.selector,
         text: card.dataset.text,
         tag: card.dataset.tag,
+        tagLabel: card.dataset.tag,
       });
     });
   });
 }
 
 function openAssignModal(element) {
-  selectedElementData = element;
+  pendingPickedData = element;
   recordedKeys = null;
-
-  selectedElement.innerHTML = `<strong>${element.tag}</strong> — ${escapeHtml(element.text) || "Sin texto"}`;
-  keyDisplay.innerHTML = '<span class="key-placeholder">Esperando teclas...</span>';
+  selectedElementDiv.innerHTML = `<strong>${element.tagLabel || element.tag}</strong> — ${escapeHtml(element.text) || element.selector}`;
+  keyDisplay.innerHTML = '<span class="key-placeholder">Presioná una combinación de teclas...</span>';
   keyDisplay.classList.add("recording");
   confirmAssign.disabled = true;
   isRecording = true;
-
   assignModal.classList.remove("hidden");
 }
 
@@ -121,20 +120,18 @@ function closeAssignModal() {
   assignModal.classList.add("hidden");
   keyDisplay.classList.remove("recording");
   isRecording = false;
-  selectedElementData = null;
+  pendingPickedData = null;
   recordedKeys = null;
 }
 
 modalBackdrop.addEventListener("click", closeAssignModal);
-closeModal.addEventListener("click", closeAssignModal);
+closeModalBtn.addEventListener("click", closeAssignModal);
 cancelAssign.addEventListener("click", closeAssignModal);
 
 document.addEventListener("keydown", (e) => {
   if (!isRecording) return;
-
   e.preventDefault();
   e.stopPropagation();
-
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
 
   const modifiers = [];
@@ -144,7 +141,7 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey) modifiers.push("Meta");
 
   if (modifiers.length === 0) {
-    showToast("Usa al menos una tecla modificadora (Ctrl, Shift, Alt)");
+    showToast("Usá Ctrl, Shift o Alt como modificador");
     return;
   }
 
@@ -161,18 +158,17 @@ document.addEventListener("keydown", (e) => {
 });
 
 confirmAssign.addEventListener("click", () => {
-  if (!recordedKeys || !selectedElementData) return;
-
+  if (!recordedKeys || !pendingPickedData) return;
   const shortcut = {
     key: recordedKeys.key,
     modifiers: recordedKeys.modifiers,
     display: recordedKeys.display,
-    selector: selectedElementData.selector,
-    text: selectedElementData.text,
-    tag: selectedElementData.tag,
+    selector: pendingPickedData.selector,
+    text: pendingPickedData.text,
+    tag: pendingPickedData.tag,
+    tagLabel: pendingPickedData.tagLabel,
     action: actionType.checked ? "click" : "scroll",
   };
-
   chrome.runtime.sendMessage(
     { action: "saveShortcut", url: currentOrigin, shortcut },
     (response) => {
@@ -180,6 +176,7 @@ confirmAssign.addEventListener("click", () => {
         showToast("Shortcut guardado");
         closeAssignModal();
         loadShortcuts();
+        switchTab("shortcuts");
       }
     }
   );
@@ -189,36 +186,33 @@ function loadShortcuts() {
   chrome.runtime.sendMessage(
     { action: "getShortcuts", url: currentOrigin },
     (response) => {
-      const shortcuts = response?.shortcuts || [];
-      renderShortcuts(shortcuts);
+      renderShortcuts(response?.shortcuts || []);
     }
   );
 }
 
 function renderShortcuts(shortcuts) {
   if (shortcuts.length === 0) {
-    shortcutList.innerHTML =
-      '<p class="empty-state">No hay shortcuts configurados para esta página</p>';
+    shortcutList.innerHTML = '<p class="empty-state">No hay shortcuts en esta página</p>';
     return;
   }
-
   shortcutList.innerHTML = shortcuts
     .map(
       (s) => `
     <div class="shortcut-card">
       <div class="shortcut-info">
-        <div class="shortcut-text">${escapeHtml(s.text) || s.tag}</div>
+        <div class="shortcut-text">${escapeHtml(s.text) || s.tagLabel || s.tag}</div>
         <div class="shortcut-keys">
           ${s.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}
         </div>
+        <div class="element-selector">${escapeHtml(s.selector)}</div>
       </div>
       <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
       </button>
-    </div>
-  `
+    </div>`
     )
     .join("");
 
@@ -232,7 +226,7 @@ function renderShortcuts(shortcuts) {
           modifiers: btn.dataset.modifiers,
         },
         () => {
-          showToast("Shortcut eliminado");
+          showToast("Eliminado");
           loadShortcuts();
         }
       );
@@ -240,17 +234,29 @@ function renderShortcuts(shortcuts) {
   });
 }
 
-function showToast(message) {
-  toastMessage.textContent = message;
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === "elementPicked") {
+    pickBtn.disabled = false;
+    scanStatus.textContent = "";
+    openAssignModal(message.data);
+  }
+  if (message.action === "pickCancelled") {
+    pickBtn.disabled = false;
+    scanStatus.textContent = "";
+  }
+});
+
+function showToast(msg) {
+  toastMessage.textContent = msg;
   toast.classList.remove("hidden");
   setTimeout(() => toast.classList.add("hidden"), 2000);
 }
 
 function escapeHtml(str) {
   if (!str) return "";
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
 }
 
 function escapeAttr(str) {

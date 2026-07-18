@@ -20,29 +20,43 @@
     </header>
 
     <div class="tabs">
-      <button class="tab active" data-tab="scan">Escanear</button>
+      <button class="tab active" data-tab="pick">Pick</button>
       <button class="tab" data-tab="shortcuts">Shortcuts</button>
     </div>
 
-    <div class="tab-content" id="tab-scan">
-      <button class="btn btn-primary btn-full" id="scanBtn">
+    <div class="tab-content" id="tab-pick">
+      <button class="btn btn-primary btn-full btn-pick" id="pickBtn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
         </svg>
-        Escanear elementos
+        Seleccionar elemento
       </button>
 
       <div class="scan-status" id="scanStatus"></div>
 
-      <div class="element-list" id="elementList">
-        <p class="empty-state">Haz clic en "Escanear" para ver los elementos de esta página</p>
+      <div class="pick-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          <path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <span>Hacé clic en "Seleccionar elemento", mové el mouse sobre la página y elegí el elemento</span>
       </div>
+
+      <button class="btn btn-secondary btn-full btn-scan" id="scanBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        Escanear todos
+      </button>
+
+      <div class="element-list" id="elementList"></div>
     </div>
 
     <div class="tab-content hidden" id="tab-shortcuts">
       <div class="shortcut-list" id="shortcutList">
-        <p class="empty-state">No hay shortcuts configurados para esta página</p>
+        <p class="empty-state">No hay shortcuts en esta página</p>
       </div>
     </div>
 
@@ -60,7 +74,7 @@
         <div class="modal-body">
           <div class="selected-element" id="selectedElement"></div>
           <div class="key-recorder">
-            <label>Presiona la combinación de teclas:</label>
+            <label>Presioná la combinación de teclas:</label>
             <div class="key-display" id="keyDisplay">
               <span class="key-placeholder">Esperando teclas...</span>
             </div>

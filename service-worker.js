@@ -11,20 +11,54 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const data = await chrome.storage.local.get("shortcuts");
       const allShortcuts = data.shortcuts || {};
       const shortcuts = allShortcuts[url.origin] || [];
-
       if (shortcuts.length > 0) {
         await chrome.scripting.executeScript({
           target: { tabId },
           files: ["content.js"],
         });
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }
 });
 
+async function ensureContentScript(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["content.js"],
+    });
+  } catch (e) {}
+}
+
+function sendToTab(tabId, message) {
+  return chrome.tabs.sendMessage(tabId, message);
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "startPickMode") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs[0]) {
+        sendResponse({ error: "No active tab" });
+        return;
+      }
+      await ensureContentScript(tabs[0].id);
+      const response = await sendToTab(tabs[0].id, {
+        action: "startPickMode",
+      });
+      sendResponse(response);
+    });
+    return true;
+  }
+
+  if (
+    message.action === "elementPicked" ||
+    message.action === "pickCancelled"
+  ) {
+    chrome.runtime.sendMessage(message);
+    sendResponse({ ok: true });
+    return true;
+  }
+
   if (message.action === "scanElements") {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (!tabs[0]) {
@@ -48,14 +82,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { url, shortcut } = message;
     chrome.storage.local.get("shortcuts", (data) => {
       const allShortcuts = data.shortcuts || {};
-      if (!allShortcuts[url]) {
-        allShortcuts[url] = [];
-      }
-      const existingIndex = allShortcuts[url].findIndex(
+      if (!allShortcuts[url]) allShortcuts[url] = [];
+      const idx = allShortcuts[url].findIndex(
         (s) => s.key === shortcut.key && s.modifiers === shortcut.modifiers
       );
-      if (existingIndex >= 0) {
-        allShortcuts[url][existingIndex] = shortcut;
+      if (idx >= 0) {
+        allShortcuts[url][idx] = shortcut;
       } else {
         allShortcuts[url].push(shortcut);
       }
@@ -83,9 +115,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         allShortcuts[url] = allShortcuts[url].filter(
           (s) => !(s.key === key && s.modifiers === modifiers)
         );
-        if (allShortcuts[url].length === 0) {
-          delete allShortcuts[url];
-        }
+        if (allShortcuts[url].length === 0) delete allShortcuts[url];
         chrome.storage.local.set({ shortcuts: allShortcuts }, () => {
           sendResponse({ success: true });
         });
@@ -102,12 +132,10 @@ function scanPageElements() {
     'button, a[href], input[type="submit"], input[type="button"], [role="button"], [onclick]';
   const elements = document.querySelectorAll(selectors);
   const results = [];
-
   elements.forEach((el, index) => {
     if (!el.offsetParent && el.tagName !== "BODY") return;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-
     let selector = "";
     if (el.id) {
       selector = `#${el.id}`;
@@ -121,7 +149,6 @@ function scanPageElements() {
         ? `${parent.tagName.toLowerCase()} > ${el.tagName.toLowerCase()}:nth-of-type(${siblingIndex + 1})`
         : el.tagName.toLowerCase();
     }
-
     results.push({
       index,
       tag: el.tagName.toLowerCase(),
@@ -131,6 +158,5 @@ function scanPageElements() {
       selector,
     });
   });
-
   return results;
 }
