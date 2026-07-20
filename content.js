@@ -82,15 +82,8 @@
     const title = el.getAttribute("title");
     if (title) return `${tag}[title="${CSS.escape(title)}"]`;
 
-    const text = el.textContent?.trim();
-    if (text && text.length > 0 && text.length < 40) {
-      const allSame = Array.from(document.querySelectorAll(tag)).filter(
-        (e) => e.textContent?.trim() === text
-      );
-      if (allSame.length === 1) {
-        return `${tag}:has-text("${CSS.escape(text)}")`;
-      }
-    }
+    const type = el.type || "";
+    if (tag === "input" && type) return `input[type="${type}"]`;
 
     if (el.className && typeof el.className === "string") {
       const stableClasses = el.className
@@ -109,6 +102,11 @@
       }
     }
 
+    const text = el.textContent?.trim();
+    if (text && text.length > 0 && text.length < 40) {
+      return `text:${tag}:${text}`;
+    }
+
     const parent = el.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children).filter(
@@ -122,6 +120,30 @@
   }
 
   function findElementByStableSelector(match) {
+    if (match.selector.startsWith("text:")) {
+      const parts = match.selector.split(":");
+      const tag = parts[1];
+      const text = parts.slice(2).join(":");
+      const elements = document.querySelectorAll(tag);
+      for (const el of elements) {
+        if (el.textContent?.trim() === text) return el;
+      }
+      return null;
+    }
+
+    if (match.selector.includes(":has-text(")) {
+      const hasTextMatch = match.selector.match(/^(\w+):has-text\("(.+)"\)$/);
+      if (hasTextMatch) {
+        const tag = hasTextMatch[1];
+        const text = hasTextMatch[2].replace(/\\(.)/g, "$1");
+        const elements = document.querySelectorAll(tag);
+        for (const el of elements) {
+          if (el.textContent?.trim() === text) return el;
+        }
+      }
+      return null;
+    }
+
     if (match.selector.includes('href="')) {
       const hrefMatch = match.selector.match(/href="([^"]+)"/);
       if (hrefMatch) {
