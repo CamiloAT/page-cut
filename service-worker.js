@@ -67,6 +67,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "stopPickMode") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs[0]) return;
+      try {
+        await sendToTab(tabs[0].id, { action: "stopPickMode" });
+      } catch (e) {}
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
   if (
     message.action === "elementPicked" ||
     message.action === "pickCancelled"

@@ -361,4 +361,14 @@ function escapeAttr(str) {
   return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && scanStatus.textContent) {
+    scanStatus.textContent = "";
+    pickBtn.disabled = false;
+    try {
+      chrome.runtime.sendMessage({ action: "stopPickMode" });
+    } catch (err) {}
+  }
+});
+
 updateCurrentTab();

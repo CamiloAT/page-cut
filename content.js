@@ -206,15 +206,25 @@
     return tag;
   }
 
+  function onPickKeydown(e) {
+    if (e.key === "Escape") {
+      stopPickMode();
+      try {
+        chrome.runtime.sendMessage({ action: "pickCancelled" });
+      } catch (e) {}
+    }
+  }
+
   function startPickMode() {
     if (pickMode) return;
     pickMode = true;
 
     pickOverlay = document.createElement("div");
     pickOverlay.id = "page-cut-overlay";
+    pickOverlay.tabIndex = -1;
     pickOverlay.style.cssText = `
       position:fixed; top:0; left:0; width:100vw; height:100vh;
-      z-index:2147483646; background:rgba(45,58,45,0.12); cursor:crosshair;
+      z-index:2147483646; background:rgba(45,58,45,0.12); cursor:crosshair; outline:none;
     `;
     document.documentElement.appendChild(pickOverlay);
 
@@ -245,6 +255,9 @@
     `;
     document.documentElement.appendChild(pickInstructions);
 
+    if (document.activeElement) document.activeElement.blur();
+    pickOverlay.focus();
+
     pickOverlay.addEventListener("mousemove", onPickMouseMove, true);
     pickOverlay.addEventListener("click", onPickClick, true);
     document.addEventListener("keydown", onPickKeydown, true);
@@ -253,6 +266,8 @@
   function stopPickMode() {
     if (!pickMode) return;
     pickMode = false;
+
+    if (document.activeElement) document.activeElement.blur();
 
     if (pickOverlay) {
       pickOverlay.removeEventListener("mousemove", onPickMouseMove, true);
@@ -371,13 +386,6 @@
 
     stopPickMode();
     chrome.runtime.sendMessage({ action: "elementPicked", data });
-  }
-
-  function onPickKeydown(e) {
-    if (e.key === "Escape") {
-      stopPickMode();
-      chrome.runtime.sendMessage({ action: "pickCancelled" });
-    }
   }
 
   function isElementVisible(el) {
@@ -512,6 +520,12 @@
     if (message.action === "startPickMode") {
       startPickMode();
       sendResponse({ success: true });
+    }
+    if (message.action === "stopPickMode") {
+      if (pickMode) {
+        stopPickMode();
+      }
+      sendResponse({ ok: true });
     }
     if (message.action === "refreshShortcuts") {
       loadShortcuts();
