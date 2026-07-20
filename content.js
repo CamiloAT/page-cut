@@ -8,13 +8,45 @@
   let pickHighlight = null;
   let pickInstructions = null;
 
-  async function loadShortcuts() {
-    chrome.runtime.sendMessage(
-      { action: "getShortcuts", url: window.location.origin },
-      (response) => {
-        currentShortcuts = response?.shortcuts || [];
-      }
+  const RESERVED_SHORTCUTS = [
+    { key: "T", modifiers: "Ctrl" },
+    { key: "W", modifiers: "Ctrl" },
+    { key: "N", modifiers: "Ctrl" },
+    { key: "Q", modifiers: "Ctrl" },
+    { key: "P", modifiers: "Ctrl" },
+    { key: "R", modifiers: "Ctrl" },
+    { key: "J", modifiers: "Ctrl" },
+    { key: "U", modifiers: "Ctrl" },
+    { key: "D", modifiers: "Ctrl" },
+    { key: "L", modifiers: "Ctrl" },
+    { key: "H", modifiers: "Ctrl" },
+    { key: "TAB", modifiers: "Ctrl" },
+    { key: "TAB", modifiers: "Ctrl+Shift" },
+    { key: "T", modifiers: "Ctrl+Shift" },
+    { key: "N", modifiers: "Ctrl+Shift" },
+    { key: "I", modifiers: "Ctrl+Shift" },
+    { key: "J", modifiers: "Ctrl+Shift" },
+    { key: "DELETE", modifiers: "Ctrl+Shift" },
+  ];
+
+  function isReserved(key, modifiers) {
+    return RESERVED_SHORTCUTS.some(
+      (s) => s.key === key && s.modifiers === modifiers
     );
+  }
+
+  async function loadShortcuts() {
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          { action: "getShortcuts", url: window.location.origin },
+          resolve
+        );
+      });
+      currentShortcuts = response?.shortcuts || [];
+    } catch (e) {
+      currentShortcuts = [];
+    }
   }
 
   function getModifiersFromEvent(e) {
@@ -28,22 +60,123 @@
 
   function getFieldSelector(el) {
     if (el.id) return `#${el.id}`;
-    if (el.name) return `${el.tagName.toLowerCase()}[name="${el.name}"]`;
-    if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/).slice(0, 3);
-      if (classes.length > 0) {
-        return `${el.tagName.toLowerCase()}${classes.map((c) => `.${c}`).join("")}`;
+
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "a" && el.href) {
+      const href = el.getAttribute("href");
+      if (href) return `a[href="${href}"]`;
+    }
+
+    const routerlink = el.getAttribute("routerlink") || el.closest("[routerlink]")?.getAttribute("routerlink");
+    if (routerlink) return `[routerlink="${routerlink}"]`;
+
+    const routerlinkactive = el.getAttribute("routerlinkactive") || el.closest("[routerlinkactive]")?.getAttribute("routerlinkactive");
+    if (routerlinkactive) return `[routerlinkactive="${routerlinkactive}"]`;
+
+    if (el.name) return `${tag}[name="${CSS.escape(el.name)}"]`;
+
+    const ariaLabel = el.getAttribute("aria-label");
+    if (ariaLabel) return `${tag}[aria-label="${CSS.escape(ariaLabel)}"]`;
+
+    const title = el.getAttribute("title");
+    if (title) return `${tag}[title="${CSS.escape(title)}"]`;
+
+    const text = el.textContent?.trim();
+    if (text && text.length > 0 && text.length < 40) {
+      const allSame = Array.from(document.querySelectorAll(tag)).filter(
+        (e) => e.textContent?.trim() === text
+      );
+      if (allSame.length === 1) {
+        return `${tag}:has-text("${CSS.escape(text)}")`;
       }
     }
+
+    if (el.className && typeof el.className === "string") {
+      const stableClasses = el.className
+        .trim()
+        .split(/\s+/)
+        .filter(
+          (c) =>
+            !c.startsWith("ng-") &&
+            !c.startsWith("_ng") &&
+            !c.startsWith("cdk-") &&
+            c.length > 2
+        )
+        .slice(0, 3);
+      if (stableClasses.length > 0) {
+        return `${tag}.${stableClasses.join(".")}`;
+      }
+    }
+
     const parent = el.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children).filter(
         (c) => c.tagName === el.tagName
       );
       const idx = siblings.indexOf(el) + 1;
-      return `${getFieldSelector(parent)} > ${el.tagName.toLowerCase()}:nth-of-type(${idx})`;
+      return `${getFieldSelector(parent)} > ${tag}:nth-of-type(${idx})`;
     }
-    return el.tagName.toLowerCase();
+
+    return tag;
+  }
+
+  function findElementByStableSelector(match) {
+    if (match.selector.includes('href="')) {
+      const hrefMatch = match.selector.match(/href="([^"]+)"/);
+      if (hrefMatch) {
+        const targetHref = hrefMatch[1];
+        const allLinks = document.querySelectorAll("a[href]");
+        for (const link of allLinks) {
+          const linkHref = link.getAttribute("href");
+          if (linkHref === targetHref) return link;
+          try {
+            const linkURL = new URL(link.href, window.location.href);
+            const targetURL = new URL(targetHref, window.location.href);
+            if (linkURL.pathname === targetURL.pathname && linkURL.hash === targetURL.hash) return link;
+          } catch (e) {}
+          if (linkHref && targetHref && linkHref.endsWith(targetHref.replace(/^\//, ""))) return link;
+          if (linkHref && targetHref && linkHref.includes(targetHref.split("/").pop())) return link;
+        }
+      }
+    }
+
+    let el = null;
+    try {
+      el = document.querySelector(match.selector);
+    } catch (e) {
+      el = null;
+    }
+    if (el) return el;
+
+    if (match.selector.includes("[routerlink=")) {
+      const routerMatch = match.selector.match(/\[routerlink="([^"]+)"\]/);
+      if (routerMatch) {
+        const allRouterLinks = document.querySelectorAll("[routerlink]");
+        for (const rl of allRouterLinks) {
+          if (rl.getAttribute("routerlink") === routerMatch[1]) return rl;
+        }
+      }
+    }
+
+    if (match.text && match.text.length > 0) {
+      const allLinks = document.querySelectorAll("a");
+      for (const link of allLinks) {
+        const linkText = link.textContent?.trim();
+        if (linkText && (linkText === match.text || linkText.startsWith(match.text))) {
+          return link;
+        }
+      }
+      const allClickable = document.querySelectorAll("button, [role='button'], [role='menuitem']");
+      for (const btn of allClickable) {
+        const btnText = btn.textContent?.trim();
+        if (btnText && (btnText === match.text || btnText.startsWith(match.text))) {
+          return btn;
+        }
+      }
+    }
+
+    return null;
   }
 
   function getElementLabel(el) {
@@ -160,9 +293,31 @@
   }
 
   function findClickable(el) {
+    if (!el) return null;
     if (isClickable(el)) return el;
     let current = el.parentElement;
     while (current && current !== document.body) {
+      if (isClickable(current)) return current;
+      current = current.parentElement;
+    }
+    return null;
+  }
+
+  function findRealClickable(el) {
+    if (!el) return null;
+    const a = el.closest("a[href]");
+    if (a) return a;
+    const btn = el.closest("button");
+    if (btn) return btn;
+    const input = el.closest('input[type="submit"], input[type="button"], input[type="image"]');
+    if (input) return input;
+    if (isClickable(el)) return el;
+    let current = el.parentElement;
+    while (current && current !== document.body) {
+      const innerA = current.querySelector("a[href]");
+      if (innerA) return innerA;
+      const innerBtn = current.querySelector("button");
+      if (innerBtn) return innerBtn;
       if (isClickable(current)) return current;
       current = current.parentElement;
     }
@@ -180,7 +335,7 @@
       return;
     }
 
-    const el = findClickable(raw);
+    const el = findRealClickable(raw);
     if (!el) {
       pickHighlight.style.display = "none";
       return;
@@ -204,7 +359,7 @@
 
     if (!raw || raw === pickOverlay || raw === pickInstructions) return;
 
-    const el = findClickable(raw);
+    const el = findRealClickable(raw);
     if (!el) return;
 
     const data = {
@@ -225,6 +380,134 @@
     }
   }
 
+  function isElementVisible(el) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+    return true;
+  }
+
+  function findExpandTrigger(el) {
+    let current = el.parentElement;
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current);
+      if (style.height === "0px" || style.maxHeight === "0px" || style.overflow === "hidden") {
+        const prev = current.previousElementSibling;
+        if (prev) {
+          const clickTarget = prev.querySelector("[role='button'], button, [class*='toggle'], [class*='expand'], [class*='menu']") || prev;
+          if (isClickable(clickTarget) || clickTarget.tagName === "BUTTON" || clickTarget.getAttribute("role") === "button") {
+            return clickTarget;
+          }
+        }
+        const parentPrev = current.parentElement?.previousElementSibling;
+        if (parentPrev) {
+          return parentPrev;
+        }
+      }
+      current = current.parentElement;
+    }
+
+    current = el;
+    while (current && current !== document.body) {
+      if (current.classList && (
+        current.classList.contains("collapsed") ||
+        current.classList.contains("menu-closed") ||
+        current.getAttribute("aria-expanded") === "false"
+      )) {
+        const trigger = current.querySelector("[role='button'], button, [class*='toggle']") || current;
+        return trigger;
+      }
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
+  function executeAction(match) {
+    if (match.selector.includes('href="') && match.action === "click") {
+      const hrefMatch = match.selector.match(/href="([^"]+)"/);
+      if (hrefMatch) {
+        const targetHref = hrefMatch[1];
+        const allLinks = document.querySelectorAll("a[href]");
+        for (const link of allLinks) {
+          const linkHref = link.getAttribute("href");
+          if (linkHref && targetHref && (
+            linkHref === targetHref ||
+            linkHref.endsWith(targetHref) ||
+            targetHref.endsWith(linkHref)
+          )) {
+            window.location.href = link.href;
+            return;
+          }
+        }
+        try {
+          window.location.href = targetHref;
+          return;
+        } catch (e) {}
+      }
+    }
+
+    let el = findElementByStableSelector(match);
+    if (!el) {
+      console.warn("Page Cut: no se encontró el elemento:", match.selector);
+      return;
+    }
+
+    const target = findRealClickable(el) || el;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    if (match.action === "click") {
+      setTimeout(() => {
+        if (target.tagName === "A" && target.href) {
+          const href = target.getAttribute("href");
+          if (href && href !== "#" && !href.startsWith("javascript:")) {
+            window.location.href = target.href;
+            return;
+          }
+        }
+
+        const closestLink = target.closest("a[href]");
+        if (closestLink) {
+          const href = closestLink.getAttribute("href");
+          if (href && href !== "#" && !href.startsWith("javascript:")) {
+            window.location.href = closestLink.href;
+            return;
+          }
+        }
+
+        target.focus();
+        target.click();
+      }, 350);
+    }
+  }
+
+  function handleKeydown(e) {
+    if (pickMode) return;
+    if (
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "TEXTAREA" ||
+      e.target.isContentEditable
+    )
+      return;
+
+    const pressedKey = e.key.toUpperCase();
+    const pressedMods = getModifiersFromEvent(e);
+
+    if (isReserved(pressedKey, pressedMods)) return;
+
+    const match = currentShortcuts.find(
+      (s) => s.key === pressedKey && s.modifiers === pressedMods
+    );
+
+    if (match) {
+      e.preventDefault();
+      e.stopPropagation();
+      executeAction(match);
+    }
+  }
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "startPickMode") {
       startPickMode();
@@ -234,40 +517,15 @@
       loadShortcuts();
       sendResponse({ ok: true });
     }
+    if (message.action === "executeShortcut") {
+      executeAction(message.shortcut);
+      sendResponse({ ok: true });
+    }
   });
 
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      if (pickMode) return;
-      if (
-        e.target.tagName === "INPUT" ||
-        e.target.tagName === "TEXTAREA" ||
-        e.target.isContentEditable
-      )
-        return;
+  document.addEventListener("keydown", handleKeydown, true);
 
-      const pressedKey = e.key.toUpperCase();
-      const pressedMods = getModifiersFromEvent(e);
-
-      const match = currentShortcuts.find(
-        (s) => s.key === pressedKey && s.modifiers === pressedMods
-      );
-
-      if (match) {
-        e.preventDefault();
-        e.stopPropagation();
-        const el = document.querySelector(match.selector);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          if (match.action === "click") {
-            setTimeout(() => el.click(), 300);
-          }
-        }
-      }
-    },
-    true
-  );
+  setInterval(loadShortcuts, 3000);
 
   loadShortcuts();
 })();

@@ -148,6 +148,33 @@ modalBackdrop.addEventListener("click", closeAssignModal);
 closeModalBtn.addEventListener("click", closeAssignModal);
 cancelAssign.addEventListener("click", closeAssignModal);
 
+const RESERVED_SHORTCUTS = [
+  { key: "T", modifiers: "Ctrl" },
+  { key: "W", modifiers: "Ctrl" },
+  { key: "N", modifiers: "Ctrl" },
+  { key: "Q", modifiers: "Ctrl" },
+  { key: "P", modifiers: "Ctrl" },
+  { key: "R", modifiers: "Ctrl" },
+  { key: "J", modifiers: "Ctrl" },
+  { key: "U", modifiers: "Ctrl" },
+  { key: "D", modifiers: "Ctrl" },
+  { key: "L", modifiers: "Ctrl" },
+  { key: "H", modifiers: "Ctrl" },
+  { key: "TAB", modifiers: "Ctrl" },
+  { key: "TAB", modifiers: "Ctrl+Shift" },
+  { key: "T", modifiers: "Ctrl+Shift" },
+  { key: "N", modifiers: "Ctrl+Shift" },
+  { key: "I", modifiers: "Ctrl+Shift" },
+  { key: "J", modifiers: "Ctrl+Shift" },
+  { key: "DELETE", modifiers: "Ctrl+Shift" },
+];
+
+function isReserved(key, modifiers) {
+  return RESERVED_SHORTCUTS.some(
+    (s) => s.key === key && s.modifiers === modifiers
+  );
+}
+
 document.addEventListener("keydown", (e) => {
   if (!isRecording) return;
   e.preventDefault();
@@ -165,10 +192,20 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
+  const key = e.key.toUpperCase();
+
+  if (isReserved(key, modifiers.join("+"))) {
+    keyDisplay.classList.remove("recording");
+    keyDisplay.innerHTML = `<span style="color:var(--danger);font-size:12px;">Atajo reservado por el navegador</span>`;
+    confirmAssign.disabled = true;
+    isRecording = false;
+    return;
+  }
+
   recordedKeys = {
-    key: e.key.toUpperCase(),
+    key,
     modifiers: modifiers.join("+"),
-    display: [...modifiers, e.key.toUpperCase()].join(" + "),
+    display: [...modifiers, key].join(" + "),
   };
 
   keyDisplay.classList.remove("recording");
@@ -225,7 +262,7 @@ function renderShortcuts(shortcuts) {
   }
   shortcutList.innerHTML = shortcuts
     .map(
-      (s) => `
+      (s, i) => `
     <div class="shortcut-card">
       <div class="shortcut-info">
         <div class="shortcut-text">${escapeHtml(s.text) || s.tagLabel || s.tag}</div>
@@ -234,6 +271,11 @@ function renderShortcuts(shortcuts) {
         </div>
         <div class="element-selector">${escapeHtml(s.selector)}</div>
       </div>
+      <button class="btn-icon btn-test-shortcut" data-index="${i}" title="Probar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+      </button>
       <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
@@ -242,6 +284,21 @@ function renderShortcuts(shortcuts) {
     </div>`
     )
     .join("");
+
+  shortcutList.querySelectorAll(".btn-test-shortcut").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index);
+      const shortcut = shortcuts[idx];
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (!tabs[0]) return;
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: "executeShortcut",
+          shortcut,
+        });
+      });
+      showToast("Ejecutando...");
+    });
+  });
 
   shortcutList.querySelectorAll(".btn-delete-shortcut").forEach((btn) => {
     btn.addEventListener("click", () => {
