@@ -61,7 +61,7 @@ pickBtn.addEventListener("click", () => {
     showToast("No se detectó la página actual");
     return;
   }
-  scanStatus.textContent = "Mové el mouse y hacé clic en un elemento...";
+  scanStatus.textContent = "Mueve el mouse y haz clic en un elemento...";
   pickBtn.disabled = true;
   chrome.runtime.sendMessage({ action: "startPickMode" }, (response) => {
     if (response?.error) {
@@ -129,7 +129,7 @@ function openAssignModal(element) {
   pendingPickedData = element;
   recordedKeys = null;
   selectedElementDiv.innerHTML = `<strong>${element.tagLabel || element.tag}</strong> — ${escapeHtml(element.text) || element.selector}`;
-  keyDisplay.innerHTML = '<span class="key-placeholder">Presioná una combinación de teclas...</span>';
+  keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
   keyDisplay.classList.add("recording");
   confirmAssign.disabled = true;
   isRecording = true;
