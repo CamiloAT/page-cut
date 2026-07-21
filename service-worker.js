@@ -78,6 +78,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "startKeyRecording") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs[0]) return;
+      try {
+        await sendToTab(tabs[0].id, { action: "startKeyRecording" });
+      } catch (e) {}
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.action === "stopKeyRecording") {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs[0]) return;
+      try {
+        await sendToTab(tabs[0].id, { action: "stopKeyRecording" });
+      } catch (e) {}
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.action === "keyRecorded") {
+    chrome.runtime.sendMessage(message);
+    sendResponse({ ok: true });
+    return true;
+  }
+
   if (
     message.action === "elementPicked" ||
     message.action === "pickCancelled"

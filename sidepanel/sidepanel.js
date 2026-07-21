@@ -134,6 +134,7 @@ function openAssignModal(element) {
   confirmAssign.disabled = true;
   isRecording = true;
   assignModal.classList.remove("hidden");
+  chrome.runtime.sendMessage({ action: "startKeyRecording" });
 }
 
 function closeAssignModal() {
@@ -142,6 +143,7 @@ function closeAssignModal() {
   isRecording = false;
   pendingPickedData = null;
   recordedKeys = null;
+  chrome.runtime.sendMessage({ action: "stopKeyRecording" });
 }
 
 modalBackdrop.addEventListener("click", closeAssignModal);
@@ -330,6 +332,25 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   if (message.action === "tabUpdated") {
     updateCurrentTab();
+  }
+  if (message.action === "keyRecorded" && isRecording) {
+    const { key, modifiers } = message;
+    if (isReserved(key, modifiers)) {
+      keyDisplay.classList.remove("recording");
+      keyDisplay.innerHTML = `<span style="color:var(--danger);font-size:12px;">Atajo reservado por el navegador</span>`;
+      confirmAssign.disabled = true;
+      isRecording = false;
+      return;
+    }
+    recordedKeys = {
+      key,
+      modifiers,
+      display: [...modifiers.split("+"), key].join(" + "),
+    };
+    keyDisplay.classList.remove("recording");
+    keyDisplay.innerHTML = `<div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
+    confirmAssign.disabled = false;
+    isRecording = false;
   }
 });
 

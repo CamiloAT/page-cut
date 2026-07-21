@@ -7,6 +7,7 @@
   let pickOverlay = null;
   let pickHighlight = null;
   let pickInstructions = null;
+  let keyRecording = false;
 
   const RESERVED_SHORTCUTS = [
     { key: "T", modifiers: "Ctrl" },
@@ -538,6 +539,34 @@
     }
   }
 
+  function onRecordKeydown(e) {
+    if (!keyRecording) return;
+    if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const modifiers = [];
+    if (e.ctrlKey) modifiers.push("Ctrl");
+    if (e.shiftKey) modifiers.push("Shift");
+    if (e.altKey) modifiers.push("Alt");
+    if (e.metaKey) modifiers.push("Meta");
+
+    if (modifiers.length === 0) return;
+
+    const key = e.key.toUpperCase();
+    keyRecording = false;
+    document.removeEventListener("keydown", onRecordKeydown, true);
+
+    try {
+      chrome.runtime.sendMessage({
+        action: "keyRecorded",
+        key,
+        modifiers: modifiers.join("+"),
+      });
+    } catch (e) {}
+  }
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "startPickMode") {
       startPickMode();
@@ -547,6 +576,16 @@
       if (pickMode) {
         stopPickMode();
       }
+      sendResponse({ ok: true });
+    }
+    if (message.action === "startKeyRecording") {
+      keyRecording = true;
+      document.addEventListener("keydown", onRecordKeydown, true);
+      sendResponse({ ok: true });
+    }
+    if (message.action === "stopKeyRecording") {
+      keyRecording = false;
+      document.removeEventListener("keydown", onRecordKeydown, true);
       sendResponse({ ok: true });
     }
     if (message.action === "refreshShortcuts") {
