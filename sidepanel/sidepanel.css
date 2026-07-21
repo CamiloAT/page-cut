@@ -671,12 +671,41 @@ body {
   color: var(--accent-dark);
 }
 
-.btn-pick {
-  font-size: 14px;
-  padding: 12px 16px;
-}
-
-.btn-scan {
+.btn-pick, .btn-scan {
   font-size: 12px;
   padding: 8px 12px;
+}
+
+.btn-group-scan {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.btn-group-scan .btn-scan {
+  flex: 1;
+}
+
+.btn-toggle-results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  padding: 8px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-results:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.btn-toggle-results.active {
+  background: var(--accent);
+  color: var(--text-primary);
 }

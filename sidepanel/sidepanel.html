@@ -26,7 +26,7 @@
 
     <div class="tab-content" id="tab-pick">
       <button class="btn btn-primary btn-full btn-pick" id="pickBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
           <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
         </svg>
@@ -43,13 +43,20 @@
         <span>Haz clic en "Seleccionar elemento", mueve el mouse sobre la página y elige el elemento</span>
       </div>
 
-      <button class="btn btn-secondary btn-full btn-scan" id="scanBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
-        Escanear todos
-      </button>
+      <div class="btn-group-scan">
+        <button class="btn btn-secondary btn-scan" id="scanBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          Escanear todos
+        </button>
+        <button class="btn-toggle-results hidden" id="toggleResults" title="Ocultar/mostrar resultados">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+      </div>
 
       <div class="element-toolbar hidden" id="elementToolbar">
         <div class="search-bar">

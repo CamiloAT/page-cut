@@ -20,6 +20,7 @@ const cancelAssign = document.getElementById("cancelAssign");
 const confirmAssign = document.getElementById("confirmAssign");
 const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
+const toggleResults = document.getElementById("toggleResults");
 
 let currentOrigin = "";
 let currentTabId = null;
@@ -27,6 +28,7 @@ let pendingPickedData = null;
 let isRecording = false;
 let keyRecording = false;
 let recordedKeys = null;
+let resultsVisible = true;
 
 async function updateCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -62,6 +64,25 @@ document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => switchTab(tab.dataset.tab));
 });
 
+function toggleResultsPanel() {
+  resultsVisible = !resultsVisible;
+  if (resultsVisible) {
+    elementToolbar.classList.remove("hidden");
+    elementCount.classList.remove("hidden");
+    elementList.style.display = "";
+    toggleResults.classList.add("active");
+    toggleResults.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg>`;
+  } else {
+    elementToolbar.classList.add("hidden");
+    elementCount.classList.add("hidden");
+    elementList.style.display = "none";
+    toggleResults.classList.remove("active");
+    toggleResults.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>`;
+  }
+}
+
+toggleResults.addEventListener("click", toggleResultsPanel);
+
 pickBtn.addEventListener("click", () => {
   if (!currentOrigin) {
     showToast("No se detectó la página actual");
@@ -87,6 +108,10 @@ scanBtn.addEventListener("click", async () => {
   }
   scanBtn.disabled = true;
   scanStatus.textContent = "Escaneando...";
+  resultsVisible = true;
+  toggleResults.classList.remove("hidden");
+  toggleResults.classList.add("active");
+  toggleResults.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg>`;
   chrome.runtime.sendMessage({ action: "scanElements" }, (response) => {
     scanBtn.disabled = false;
     if (response?.error) {
@@ -98,6 +123,7 @@ scanBtn.addEventListener("click", async () => {
     buildFilterChips(allElements);
     applyFilters();
     elementToolbar.classList.remove("hidden");
+    elementList.style.display = "";
   });
 });
 
