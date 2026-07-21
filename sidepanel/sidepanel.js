@@ -20,6 +20,7 @@ let currentOrigin = "";
 let currentTabId = null;
 let pendingPickedData = null;
 let isRecording = false;
+let keyRecording = false;
 let recordedKeys = null;
 
 async function updateCurrentTab() {
@@ -133,6 +134,7 @@ function openAssignModal(element) {
   keyDisplay.classList.add("recording");
   confirmAssign.disabled = true;
   isRecording = true;
+  keyRecording = true;
   assignModal.classList.remove("hidden");
   chrome.runtime.sendMessage({ action: "startKeyRecording" });
 }
@@ -141,6 +143,7 @@ function closeAssignModal() {
   assignModal.classList.add("hidden");
   keyDisplay.classList.remove("recording");
   isRecording = false;
+  keyRecording = false;
   pendingPickedData = null;
   recordedKeys = null;
   chrome.runtime.sendMessage({ action: "stopKeyRecording" });
@@ -197,8 +200,23 @@ document.addEventListener("keydown", (e) => {
   const key = e.key.toUpperCase();
 
   if (isReserved(key, modifiers.join("+"))) {
+    const display = [...modifiers, key].join(" + ");
     keyDisplay.classList.remove("recording");
-    keyDisplay.innerHTML = `<span style="color:var(--danger);font-size:12px;">Atajo reservado por el navegador</span>`;
+    keyDisplay.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
+        <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
+        <button id="retryKeyBtn" class="btn btn-secondary" style="margin-top:4px;padding:5px 12px;font-size:11px;">
+          Reintentar
+        </button>
+      </div>`;
+    document.getElementById("retryKeyBtn").addEventListener("click", () => {
+      isRecording = true;
+      keyRecording = true;
+      keyDisplay.classList.add("recording");
+      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      chrome.runtime.sendMessage({ action: "startKeyRecording" });
+    });
     confirmAssign.disabled = true;
     isRecording = false;
     return;
@@ -335,9 +353,24 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   if (message.action === "keyRecorded" && isRecording) {
     const { key, modifiers } = message;
+    const display = [...modifiers.split("+"), key].join(" + ");
     if (isReserved(key, modifiers)) {
       keyDisplay.classList.remove("recording");
-      keyDisplay.innerHTML = `<span style="color:var(--danger);font-size:12px;">Atajo reservado por el navegador</span>`;
+      keyDisplay.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+          <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
+          <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
+          <button id="retryKeyBtn" class="btn btn-primary" style="margin-top:4px;padding:5px 12px;font-size:11px;">
+            Reintentar
+          </button>
+        </div>`;
+      document.getElementById("retryKeyBtn").addEventListener("click", () => {
+        isRecording = true;
+        keyRecording = true;
+        keyDisplay.classList.add("recording");
+        keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+        chrome.runtime.sendMessage({ action: "startKeyRecording" });
+      });
       confirmAssign.disabled = true;
       isRecording = false;
       return;
@@ -345,10 +378,10 @@ chrome.runtime.onMessage.addListener((message) => {
     recordedKeys = {
       key,
       modifiers,
-      display: [...modifiers.split("+"), key].join(" + "),
+      display,
     };
     keyDisplay.classList.remove("recording");
-    keyDisplay.innerHTML = `<div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
+    keyDisplay.innerHTML = `<div class="key-combination">${display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
     confirmAssign.disabled = false;
     isRecording = false;
   }
