@@ -205,8 +205,104 @@ body {
 .element-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   flex: 1;
+  overflow-y: auto;
+}
+
+.element-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.element-count.hidden {
+  display: none;
+}
+
+.element-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.element-toolbar.hidden {
+  display: none;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+
+.search-bar:focus-within {
+  border-color: var(--accent);
+}
+
+.search-bar svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-clear-search {
+  flex-shrink: 0;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.chip.active {
+  background: var(--accent);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.chip-count {
+  font-size: 10px;
+  opacity: 0.6;
 }
 
 .empty-state {
@@ -219,11 +315,11 @@ body {
 .element-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 7px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -231,7 +327,6 @@ body {
 .element-card:hover {
   border-color: var(--accent);
   background: var(--bg-secondary);
-  transform: translateX(2px);
 }
 
 .element-card.selected {
@@ -239,19 +334,49 @@ body {
   background: rgba(168, 213, 162, 0.15);
 }
 
-.element-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  display: flex;
+.element-tag {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  min-width: 36px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--accent-dark);
-  flex-shrink: 0;
   text-transform: uppercase;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+
+.element-tag.tag-button {
+  background: rgba(168, 213, 162, 0.3);
+  color: #4a7c47;
+}
+
+.element-tag.tag-a {
+  background: rgba(116, 163, 201, 0.3);
+  color: #3a6a8a;
+}
+
+.element-tag.tag-input {
+  background: rgba(201, 180, 116, 0.3);
+  color: #7a6a2a;
+}
+
+.element-tag.tag-select {
+  background: rgba(180, 140, 190, 0.3);
+  color: #6a4a7a;
+}
+
+.element-tag.tag-summary {
+  background: rgba(201, 155, 116, 0.3);
+  color: #7a5a3a;
+}
+
+.element-tag.tag-other {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .element-info {
@@ -275,6 +400,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 .element-actions {

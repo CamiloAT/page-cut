@@ -2,6 +2,11 @@ const pickBtn = document.getElementById("pickBtn");
 const scanBtn = document.getElementById("scanBtn");
 const scanStatus = document.getElementById("scanStatus");
 const elementList = document.getElementById("elementList");
+const elementToolbar = document.getElementById("elementToolbar");
+const elementCount = document.getElementById("elementCount");
+const searchInput = document.getElementById("searchInput");
+const clearSearch = document.getElementById("clearSearch");
+const filterChips = document.getElementById("filterChips");
 const shortcutList = document.getElementById("shortcutList");
 const currentUrl = document.getElementById("currentUrl");
 const shortcutCount = document.getElementById("shortcutCount");
@@ -72,6 +77,9 @@ pickBtn.addEventListener("click", () => {
   });
 });
 
+let allElements = [];
+let activeFilter = "all";
+
 scanBtn.addEventListener("click", async () => {
   if (!currentOrigin) {
     showToast("No se detectó la página actual");
@@ -85,11 +93,89 @@ scanBtn.addEventListener("click", async () => {
       scanStatus.textContent = "Error al escanear";
       return;
     }
-    const elements = response?.elements || [];
-    scanStatus.textContent = `${elements.length} elementos encontrados`;
-    renderElements(elements);
+    allElements = response?.elements || [];
+    scanStatus.textContent = "";
+    buildFilterChips(allElements);
+    applyFilters();
+    elementToolbar.classList.remove("hidden");
   });
 });
+
+function buildFilterChips(elements) {
+  const counts = {};
+  elements.forEach((el) => {
+    counts[el.tag] = (counts[el.tag] || 0) + 1;
+  });
+  const tags = Object.keys(counts).sort();
+
+  let html = `<button class="chip active" data-filter="all">Todos <span class="chip-count">${elements.length}</span></button>`;
+  tags.forEach((tag) => {
+    const label = TAG_LABELS[tag] || tag;
+    html += `<button class="chip" data-filter="${tag}">${label} <span class="chip-count">${counts[tag]}</span></button>`;
+  });
+  filterChips.innerHTML = html;
+
+  filterChips.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      filterChips.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      activeFilter = chip.dataset.filter;
+      applyFilters();
+    });
+  });
+}
+
+function applyFilters() {
+  const query = searchInput.value.trim().toLowerCase();
+  let filtered = allElements;
+
+  if (activeFilter !== "all") {
+    filtered = filtered.filter((el) => el.tag === activeFilter);
+  }
+
+  if (query) {
+    filtered = filtered.filter(
+      (el) =>
+        (el.text || "").toLowerCase().includes(query) ||
+        el.selector.toLowerCase().includes(query) ||
+        el.tag.toLowerCase().includes(query)
+    );
+  }
+
+  elementCount.textContent = `${filtered.length} de ${allElements.length} elementos`;
+  elementCount.classList.remove("hidden");
+  renderElements(filtered);
+}
+
+searchInput.addEventListener("input", () => {
+  clearSearch.classList.toggle("hidden", !searchInput.value);
+  applyFilters();
+});
+
+clearSearch.addEventListener("click", () => {
+  searchInput.value = "";
+  clearSearch.classList.add("hidden");
+  applyFilters();
+  searchInput.focus();
+});
+
+const TAG_LABELS = {
+  button: "Botón",
+  a: "Enlace",
+  input: "Input",
+  select: "Select",
+  summary: "Details",
+  "[role=button]": "Role",
+};
+
+function getTagClass(tag) {
+  if (tag === "button") return "tag-button";
+  if (tag === "a") return "tag-a";
+  if (tag === "input") return "tag-input";
+  if (tag === "select") return "tag-select";
+  if (tag === "summary") return "tag-summary";
+  return "tag-other";
+}
 
 function renderElements(elements) {
   if (elements.length === 0) {
@@ -100,13 +186,12 @@ function renderElements(elements) {
     .map(
       (el) => `
     <div class="element-card" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}">
-      <div class="element-icon">${el.tag.substring(0, 3)}</div>
+      <span class="element-tag ${getTagClass(el.tag)}">${TAG_LABELS[el.tag] || el.tag}</span>
       <div class="element-info">
         <div class="element-text">${escapeHtml(el.text) || "Sin texto"}</div>
-        <div class="element-selector">${escapeHtml(el.selector)}</div>
       </div>
       <div class="element-actions">
-        <button class="btn btn-primary btn-assign" style="padding:6px 10px;font-size:11px;">Asignar</button>
+        <button class="btn btn-primary btn-assign" style="padding:5px 8px;font-size:10px;">Asignar</button>
       </div>
     </div>`
     )
