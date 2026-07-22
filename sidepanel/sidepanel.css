@@ -473,6 +473,27 @@ body {
   font-family: 'SF Mono', Monaco, monospace;
 }
 
+.key-danger {
+  background: rgba(217, 122, 122, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.key-success {
+  background: rgba(90, 154, 84, 0.15);
+  border-color: var(--accent-dark);
+  color: var(--accent-dark);
+}
+
+.key-separator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -712,19 +733,20 @@ body {
 
 .btn-retry {
   margin-top: 4px;
-  padding: 5px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--accent);
-  color: var(--text-primary);
-  border: none;
-  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: 'SF Mono', Monaco, monospace;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-retry:hover {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg-secondary);
 }

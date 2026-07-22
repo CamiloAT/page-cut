@@ -291,6 +291,11 @@ function isReserved(key, modifiers) {
   );
 }
 
+function renderKeyCombination(display, variant) {
+  const variantClass = variant === "danger" ? " key-danger" : variant === "success" ? " key-success" : "";
+  return `<div class="key-combination">${display.split(" + ").map((k) => `<span class="key${variantClass}">${k}</span>`).join('<span class="key-separator">+</span>')}</div>`;
+}
+
 document.addEventListener("keydown", (e) => {
   if (!isRecording) return;
   e.preventDefault();
@@ -315,7 +320,7 @@ document.addEventListener("keydown", (e) => {
     keyDisplay.classList.remove("recording");
     keyDisplay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-        <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
+        ${renderKeyCombination(display, "danger")}
         <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
         <button id="retryKeyBtn" class="btn-retry">
           Reintentar
@@ -342,7 +347,7 @@ document.addEventListener("keydown", (e) => {
   keyDisplay.classList.remove("recording");
   keyDisplay.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-      <div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>
+      ${renderKeyCombination(recordedKeys.display, "success")}
       <button id="retryKeyBtn" class="btn-retry">
         Cambiar tecla
       </button>
@@ -484,7 +489,7 @@ chrome.runtime.onMessage.addListener((message) => {
       keyDisplay.classList.remove("recording");
       keyDisplay.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-          <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
+          ${renderKeyCombination(display, "danger")}
           <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
           <button id="retryKeyBtn" class="btn-retry">
             Reintentar
@@ -509,7 +514,7 @@ chrome.runtime.onMessage.addListener((message) => {
     keyDisplay.classList.remove("recording");
     keyDisplay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-        <div class="key-combination">${display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>
+        ${renderKeyCombination(display, "success")}
         <button id="retryKeyBtn" class="btn-retry">
           Cambiar tecla
         </button>
