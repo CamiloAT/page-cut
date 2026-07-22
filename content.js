@@ -59,6 +59,53 @@
     return mods.join("+");
   }
 
+  function isSelectorUnique(selector) {
+    if (selector.startsWith("text:")) {
+      let textContent, parentSelector = null;
+
+      if (selector.includes(" | parent:")) {
+        const [textPart, parentPart] = selector.split(" | parent:");
+        parentSelector = parentPart;
+        const parts = textPart.split(":");
+        textContent = parts.slice(2).join(":");
+      } else {
+        const parts = selector.split(":");
+        textContent = parts.slice(2).join(":");
+      }
+
+      const tag = selector.split(":")[1];
+
+      if (parentSelector) {
+        const parentEl = document.querySelector(parentSelector);
+        if (!parentEl) return false;
+        const elements = parentEl.querySelectorAll(tag);
+        let count = 0;
+        for (const el of elements) {
+          if (el.textContent?.trim() === textContent) {
+            count++;
+            if (count > 1) return false;
+          }
+        }
+        return count === 1;
+      }
+
+      const elements = document.querySelectorAll(tag);
+      let count = 0;
+      for (const el of elements) {
+        if (el.textContent?.trim() === textContent) {
+          count++;
+          if (count > 1) return false;
+        }
+      }
+      return count === 1;
+    }
+    try {
+      return document.querySelectorAll(selector).length === 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function getFieldSelector(el) {
     if (el.id) return `#${el.id}`;
 
@@ -86,6 +133,25 @@
     const type = el.type || "";
     if (tag === "input" && type) return `input[type="${type}"]`;
 
+    const text = el.textContent?.trim();
+    if (text && text.length > 0 && text.length < 40) {
+      const textSelector = `text:${tag}:${text}`;
+      if (isSelectorUnique(textSelector)) return textSelector;
+
+      const parent = el.parentElement;
+      if (parent) {
+        const parentSelector = getFieldSelector(parent);
+        const withParent = `text:${tag}:${text} | parent:${parentSelector}`;
+        if (isSelectorUnique(withParent)) return withParent;
+
+        const siblings = Array.from(parent.children).filter(
+          (c) => c.tagName === el.tagName
+        );
+        const idx = siblings.indexOf(el) + 1;
+        return `${parentSelector} > ${tag}:nth-of-type(${idx})`;
+      }
+    }
+
     if (el.className && typeof el.className === "string") {
       const stableClasses = el.className
         .trim()
@@ -95,17 +161,14 @@
             !c.startsWith("ng-") &&
             !c.startsWith("_ng") &&
             !c.startsWith("cdk-") &&
+            !c.startsWith("mantine-") &&
+            !/^m_[a-f0-9]+$/i.test(c) &&
             c.length > 2
         )
         .slice(0, 3);
       if (stableClasses.length > 0) {
         return `${tag}.${stableClasses.join(".")}`;
       }
-    }
-
-    const text = el.textContent?.trim();
-    if (text && text.length > 0 && text.length < 40) {
-      return `text:${tag}:${text}`;
     }
 
     const parent = el.parentElement;
@@ -122,12 +185,33 @@
 
   function findElementByStableSelector(match) {
     if (match.selector.startsWith("text:")) {
-      const parts = match.selector.split(":");
-      const tag = parts[1];
-      const text = parts.slice(2).join(":");
+      let textContent, parentSelector = null;
+
+      if (match.selector.includes(" | parent:")) {
+        const [textPart, parentPart] = match.selector.split(" | parent:");
+        parentSelector = parentPart;
+        const parts = textPart.split(":");
+        textContent = parts.slice(2).join(":");
+      } else {
+        const parts = match.selector.split(":");
+        textContent = parts.slice(2).join(":");
+      }
+
+      if (parentSelector) {
+        const parentEl = document.querySelector(parentSelector);
+        if (parentEl) {
+          const elements = parentEl.querySelectorAll(match.selector.split(":")[1]);
+          for (const el of elements) {
+            if (el.textContent?.trim() === textContent) return el;
+          }
+        }
+        return null;
+      }
+
+      const tag = match.selector.split(":")[1];
       const elements = document.querySelectorAll(tag);
       for (const el of elements) {
-        if (el.textContent?.trim() === text) return el;
+        if (el.textContent?.trim() === textContent) return el;
       }
       return null;
     }
@@ -362,6 +446,15 @@
     return null;
   }
 
+  function findDeepestClickableChild(el) {
+    if (!el.children || el.children.length === 0) return el;
+    let current = el;
+    while (current.children.length > 0) {
+      current = current.lastElementChild;
+    }
+    return current;
+  }
+
   function onPickMouseMove(e) {
     if (!pickHighlight) return;
     pickOverlay.style.pointerEvents = "none";
@@ -509,7 +602,8 @@
         }
 
         target.focus();
-        target.click();
+        const clickTarget = findDeepestClickableChild(target);
+        clickTarget.click();
       }, 350);
     }
   }
