@@ -317,7 +317,7 @@ document.addEventListener("keydown", (e) => {
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
         <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
         <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
-        <button id="retryKeyBtn" class="btn btn-secondary" style="margin-top:4px;padding:5px 12px;font-size:11px;">
+        <button id="retryKeyBtn" class="btn-retry">
           Reintentar
         </button>
       </div>`;
@@ -340,7 +340,22 @@ document.addEventListener("keydown", (e) => {
   };
 
   keyDisplay.classList.remove("recording");
-  keyDisplay.innerHTML = `<div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
+  keyDisplay.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+      <div class="key-combination">${recordedKeys.display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>
+      <button id="retryKeyBtn" class="btn-retry">
+        Cambiar tecla
+      </button>
+    </div>`;
+  document.getElementById("retryKeyBtn").addEventListener("click", () => {
+    isRecording = true;
+    keyRecording = true;
+    recordedKeys = null;
+    keyDisplay.classList.add("recording");
+    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    confirmAssign.disabled = true;
+    chrome.runtime.sendMessage({ action: "startKeyRecording" });
+  });
   confirmAssign.disabled = false;
   isRecording = false;
 });
@@ -471,7 +486,7 @@ chrome.runtime.onMessage.addListener((message) => {
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
           <span style="color:var(--danger);font-size:12px;font-weight:600;">${display}</span>
           <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
-          <button id="retryKeyBtn" class="btn btn-primary" style="margin-top:4px;padding:5px 12px;font-size:11px;">
+          <button id="retryKeyBtn" class="btn-retry">
             Reintentar
           </button>
         </div>`;
@@ -492,7 +507,22 @@ chrome.runtime.onMessage.addListener((message) => {
       display,
     };
     keyDisplay.classList.remove("recording");
-    keyDisplay.innerHTML = `<div class="key-combination">${display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>`;
+    keyDisplay.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        <div class="key-combination">${display.split(" + ").map((k) => `<span class="key">${k}</span>`).join("")}</div>
+        <button id="retryKeyBtn" class="btn-retry">
+          Cambiar tecla
+        </button>
+      </div>`;
+    document.getElementById("retryKeyBtn").addEventListener("click", () => {
+      isRecording = true;
+      keyRecording = true;
+      recordedKeys = null;
+      keyDisplay.classList.add("recording");
+      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      confirmAssign.disabled = true;
+      chrome.runtime.sendMessage({ action: "startKeyRecording" });
+    });
     confirmAssign.disabled = false;
     isRecording = false;
   }
