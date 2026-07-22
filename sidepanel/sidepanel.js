@@ -211,7 +211,7 @@ function renderElements(elements) {
   elementList.innerHTML = elements
     .map(
       (el) => `
-    <div class="element-card" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}">
+    <div class="element-card" data-selector="${escapeAttr(el.selector)}" data-text="${escapeAttr(el.text)}" data-tag="${el.tag}" data-href="${escapeAttr(el.href || '')}">
       <span class="element-tag ${getTagClass(el.tag)}">${TAG_LABELS[el.tag] || el.tag}</span>
       <div class="element-info">
         <div class="element-text">${escapeHtml(el.text) || "Sin texto"}</div>
@@ -232,6 +232,7 @@ function renderElements(elements) {
         text: card.dataset.text,
         tag: card.dataset.tag,
         tagLabel: card.dataset.tag,
+        href: card.dataset.href || null,
       });
     });
   });
@@ -375,6 +376,7 @@ confirmAssign.addEventListener("click", () => {
     text: pendingPickedData.text,
     tag: pendingPickedData.tag,
     tagLabel: pendingPickedData.tagLabel,
+    href: pendingPickedData.href || null,
     action: actionType.checked ? "click" : "scroll",
   };
   chrome.runtime.sendMessage(

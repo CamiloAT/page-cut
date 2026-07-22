@@ -212,6 +212,7 @@ function scanPageElements() {
         .trim()
         .substring(0, 50),
       selector,
+      href: el.getAttribute("href") || null,
     });
   });
   return results;
