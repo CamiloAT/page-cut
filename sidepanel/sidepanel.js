@@ -18,6 +18,15 @@ const keyDisplay = document.getElementById("keyDisplay");
 const actionType = document.getElementById("actionType");
 const cancelAssign = document.getElementById("cancelAssign");
 const confirmAssign = document.getElementById("confirmAssign");
+
+const editModal = document.getElementById("editModal");
+const editModalBackdrop = document.getElementById("editModalBackdrop");
+const closeEditModalBtn = document.getElementById("closeEditModal");
+const editSelectedElementDiv = document.getElementById("editSelectedElement");
+const editKeyDisplay = document.getElementById("editKeyDisplay");
+const editActionType = document.getElementById("editActionType");
+const cancelEdit = document.getElementById("cancelEdit");
+const confirmEdit = document.getElementById("confirmEdit");
 const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
 const toggleResults = document.getElementById("toggleResults");
@@ -263,6 +272,67 @@ function closeAssignModal() {
 
 modalBackdrop.addEventListener("click", closeAssignModal);
 closeModalBtn.addEventListener("click", closeAssignModal);
+
+let editingShortcut = null;
+let editRecordedKeys = null;
+let isEditRecording = false;
+
+function openEditModal(shortcut) {
+  editingShortcut = shortcut;
+  editRecordedKeys = null;
+  editSelectedElementDiv.innerHTML = `<strong>${shortcut.tagLabel || shortcut.tag}</strong> — ${escapeHtml(shortcut.text) || shortcut.selector}<br><span style="font-size:11px;color:var(--text-muted);">Tecla actual: ${shortcut.display}</span>`;
+  editKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona nueva combinación...</span>';
+  editKeyDisplay.classList.add("recording");
+  editActionType.checked = shortcut.action === "click";
+  confirmEdit.disabled = true;
+  isEditRecording = true;
+  editModal.classList.remove("hidden");
+  chrome.runtime.sendMessage({ action: "startKeyRecording" });
+}
+
+function closeEditModal() {
+  editModal.classList.add("hidden");
+  editKeyDisplay.classList.remove("recording");
+  isEditRecording = false;
+  editingShortcut = null;
+  editRecordedKeys = null;
+  chrome.runtime.sendMessage({ action: "stopKeyRecording" });
+}
+
+editModalBackdrop.addEventListener("click", closeEditModal);
+closeEditModalBtn.addEventListener("click", closeEditModal);
+cancelEdit.addEventListener("click", closeEditModal);
+
+confirmEdit.addEventListener("click", () => {
+  if (!editRecordedKeys || !editingShortcut) return;
+  const newShortcut = {
+    key: editRecordedKeys.key,
+    modifiers: editRecordedKeys.modifiers,
+    display: editRecordedKeys.display,
+    selector: editingShortcut.selector,
+    text: editingShortcut.text,
+    tag: editingShortcut.tag,
+    tagLabel: editingShortcut.tagLabel,
+    href: editingShortcut.href || null,
+    action: editActionType.checked ? "click" : "scroll",
+  };
+
+  chrome.runtime.sendMessage(
+    { action: "deleteShortcut", url: currentOrigin, key: editingShortcut.key, modifiers: editingShortcut.modifiers },
+    () => {
+      chrome.runtime.sendMessage(
+        { action: "saveShortcut", url: currentOrigin, shortcut: newShortcut },
+        (response) => {
+          if (response?.success) {
+            showToast("Shortcut actualizado");
+            closeEditModal();
+            loadShortcuts();
+          }
+        }
+      );
+    }
+  );
+});
 cancelAssign.addEventListener("click", closeAssignModal);
 
 const RESERVED_SHORTCUTS = [
@@ -298,7 +368,7 @@ function renderKeyCombination(display, variant) {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (!isRecording) return;
+  if (!isRecording && !isEditRecording) return;
   e.preventDefault();
   e.stopPropagation();
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
@@ -318,52 +388,77 @@ document.addEventListener("keydown", (e) => {
 
   if (isReserved(key, modifiers.join("+"))) {
     const display = [...modifiers, key].join(" + ");
-    keyDisplay.classList.remove("recording");
-    keyDisplay.innerHTML = `
+    const targetDisplay = isEditRecording ? editKeyDisplay : keyDisplay;
+    targetDisplay.classList.remove("recording");
+    targetDisplay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
         ${renderKeyCombination(display, "danger")}
         <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
-        <button id="retryKeyBtn" class="btn-retry">
+        <button class="btn-retry" data-edit="${isEditRecording ? 'true' : 'false'}">
           Reintentar
         </button>
       </div>`;
-    document.getElementById("retryKeyBtn").addEventListener("click", () => {
-      isRecording = true;
-      keyRecording = true;
-      keyDisplay.classList.add("recording");
-      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    targetDisplay.querySelector(".btn-retry").addEventListener("click", () => {
+      if (isEditRecording) {
+        editRecordedKeys = null;
+        editKeyDisplay.classList.add("recording");
+        editKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona nueva combinación...</span>';
+        confirmEdit.disabled = true;
+      } else {
+        isRecording = true;
+        keyRecording = true;
+        keyDisplay.classList.add("recording");
+        keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+        confirmAssign.disabled = true;
+      }
       chrome.runtime.sendMessage({ action: "startKeyRecording" });
     });
-    confirmAssign.disabled = true;
-    isRecording = false;
+    if (isEditRecording) confirmEdit.disabled = true;
+    else confirmAssign.disabled = true;
     return;
   }
 
-  recordedKeys = {
+  const recorded = {
     key,
     modifiers: modifiers.join("+"),
     display: [...modifiers, key].join(" + "),
   };
 
-  keyDisplay.classList.remove("recording");
-  keyDisplay.innerHTML = `
+  const targetDisplay = isEditRecording ? editKeyDisplay : keyDisplay;
+  targetDisplay.classList.remove("recording");
+  targetDisplay.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-      ${renderKeyCombination(recordedKeys.display, "success")}
-      <button id="retryKeyBtn" class="btn-retry">
+      ${renderKeyCombination(recorded.display, "success")}
+      <button class="btn-retry">
         Cambiar tecla
       </button>
     </div>`;
-  document.getElementById("retryKeyBtn").addEventListener("click", () => {
-    isRecording = true;
-    keyRecording = true;
-    recordedKeys = null;
-    keyDisplay.classList.add("recording");
-    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
-    confirmAssign.disabled = true;
+  targetDisplay.querySelector(".btn-retry").addEventListener("click", () => {
+    if (isEditRecording) {
+      editRecordedKeys = null;
+      editKeyDisplay.classList.add("recording");
+      editKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona nueva combinación...</span>';
+      confirmEdit.disabled = true;
+    } else {
+      isRecording = true;
+      keyRecording = true;
+      recordedKeys = null;
+      keyDisplay.classList.add("recording");
+      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      confirmAssign.disabled = true;
+    }
     chrome.runtime.sendMessage({ action: "startKeyRecording" });
   });
-  confirmAssign.disabled = false;
+
+  if (isEditRecording) {
+    editRecordedKeys = recorded;
+    confirmEdit.disabled = false;
+  } else {
+    recordedKeys = recorded;
+    confirmAssign.disabled = false;
+  }
   isRecording = false;
+  isEditRecording = false;
 });
 
 confirmAssign.addEventListener("click", () => {
@@ -424,16 +519,24 @@ function renderShortcuts(shortcuts) {
         </div>
         <div class="element-selector">${escapeHtml(s.selector)}</div>
       </div>
-      <button class="btn-icon btn-test-shortcut" data-index="${i}" title="Probar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-      </button>
-      <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="shortcut-actions">
+        <button class="btn-icon btn-test-shortcut" data-index="${i}" title="Probar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-edit-shortcut" data-index="${i}" title="Editar tecla">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>`
     )
     .join("");
@@ -467,6 +570,14 @@ function renderShortcuts(shortcuts) {
           loadShortcuts();
         }
       );
+    });
+  });
+
+  shortcutList.querySelectorAll(".btn-edit-shortcut").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index);
+      const shortcut = shortcuts[idx];
+      openEditModal(shortcut);
     });
   });
 }
