@@ -28,6 +28,11 @@ function renderGlobalShortcuts(shortcuts) {
         <div class="global-col-label">${escapeHtml(s.label)}</div>
         <div class="global-col-url">${escapeHtml(s.url)}</div>
         <div class="global-col-actions">
+          <button class="btn-icon btn-test-global" data-url="${escapeAttr(s.url)}" title="Probar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5,3 19,12 5,21"/>
+            </svg>
+          </button>
           <button class="btn-icon btn-edit-global" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Editar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -46,6 +51,19 @@ function renderGlobalShortcuts(shortcuts) {
   html += '</div>';
   globalList.innerHTML = html;
 
+  globalList.querySelectorAll(".btn-test-global").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.update(tabs[0].id, { url: btn.dataset.url });
+        } else {
+          chrome.tabs.create({ url: btn.dataset.url });
+        }
+      });
+      showToast("Navegando...");
+    });
+  });
+
   globalList.querySelectorAll(".btn-edit-global").forEach((btn) => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.key;
@@ -61,7 +79,6 @@ function renderGlobalShortcuts(shortcuts) {
       const modifiers = btn.dataset.modifiers;
       const existing = shortcuts.find((s) => s.key === key && s.modifiers === modifiers);
       if (!existing) return;
-      if (!confirm(`Eliminar shortcut "${existing.label || existing.url}"?`)) return;
       deleteGlobalShortcut(existing);
     });
   });
@@ -194,10 +211,24 @@ function openGlobalForm(existing) {
       label: labelInput.value.trim() || url.replace(/^https?:\/\//, "").split("/")[0],
     };
 
-    chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-      showToast("Guardado");
-      loadGlobalShortcuts();
-    });
+    const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
+
+    if (keyChanged) {
+      chrome.runtime.sendMessage({
+        action: "deleteGlobalShortcut",
+        command: `${existing.key}|${existing.modifiers}`,
+      }, () => {
+        chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
+          showToast("Guardado");
+          loadGlobalShortcuts();
+        });
+      });
+    } else {
+      chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
+        showToast("Guardado");
+        loadGlobalShortcuts();
+      });
+    }
   });
 
   cancelBtn.addEventListener("click", () => {
@@ -218,25 +249,4 @@ function deleteGlobalShortcut(shortcut) {
     showToast("Eliminado");
     loadGlobalShortcuts();
   });
-}
-
-function showToast(msg) {
-  const toast = document.getElementById("toast");
-  const toastMessage = document.getElementById("toastMessage");
-  if (!toast || !toastMessage) return;
-  toastMessage.textContent = msg;
-  toast.classList.remove("hidden");
-  setTimeout(() => toast.classList.add("hidden"), 2000);
-}
-
-function escapeHtml(str) {
-  if (!str) return "";
-  const d = document.createElement("div");
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-function escapeAttr(str) {
-  if (!str) return "";
-  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
