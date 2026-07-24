@@ -22,6 +22,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="pick">Pick</button>
       <button class="tab" data-tab="shortcuts">Shortcuts <span id="shortcutCount"></span></button>
+      <button class="tab" data-tab="global">Global</button>
     </div>
 
     <div class="tab-content" id="tab-pick">
@@ -83,6 +84,19 @@
       <div class="shortcut-list" id="shortcutList">
         <p class="empty-state">No hay shortcuts en esta página</p>
       </div>
+    </div>
+
+    <div class="tab-content hidden" id="tab-global">
+      <div class="global-header">
+        <button class="btn btn-primary btn-full" id="addGlobalBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Agregar shortcut global
+        </button>
+        <p class="global-hint">Atajos que funcionan desde cualquier página. Presioná la tecla y se navega a la URL guardada.</p>
+      </div>
+      <div class="global-list" id="globalList"></div>
     </div>
 
     <div class="modal hidden" id="assignModal">
@@ -153,5 +167,6 @@
   </div>
 
   <script src="sidepanel.js"></script>
+  <script src="global.js"></script>
 </body>
 </html>

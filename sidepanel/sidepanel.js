@@ -67,6 +67,7 @@ function switchTab(tabName) {
   document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
   document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
   document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+  if (tabName === "global") loadGlobalShortcuts();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {

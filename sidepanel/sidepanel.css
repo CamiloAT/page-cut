@@ -775,3 +775,124 @@ body {
   border-color: var(--text-secondary);
   background: var(--bg-secondary);
 }
+
+.global-header {
+  margin-bottom: 10px;
+}
+
+.global-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.global-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.global-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+
+.global-row:hover {
+  border-color: var(--accent);
+}
+
+.global-header-row {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  padding: 4px 10px;
+}
+
+.global-col-keys { width: 120px; flex-shrink: 0; }
+.global-col-label { flex: 1; min-width: 0; }
+.global-col-url { flex: 1.5; min-width: 0; }
+.global-col-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+.global-row:not(.global-header-row) .global-col-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.global-row:not(.global-header-row) .global-col-url {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-edit-global {
+  color: #2196f3;
+}
+.btn-edit-global:hover {
+  background: rgba(33, 150, 243, 0.15);
+  color: #1565c0;
+}
+
+.btn-delete-global {
+  color: #f44336;
+}
+.btn-delete-global:hover {
+  background: rgba(244, 67, 54, 0.15);
+  color: #c62828;
+}
+
+.global-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+}
+
+.global-form-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.global-key-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  justify-content: center;
+}
+
+.global-key-display.recording {
+  border-color: var(--accent);
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.key-placeholder {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--accent); }
+  50% { border-color: var(--accent-light); }
+}

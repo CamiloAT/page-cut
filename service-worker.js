@@ -59,10 +59,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       await ensureContentScript(tabs[0].id);
-      const response = await sendToTab(tabs[0].id, {
-        action: "startPickMode",
-      });
-      sendResponse(response);
+      try {
+        const response = await sendToTab(tabs[0].id, {
+          action: "startPickMode",
+        });
+        sendResponse(response);
+      } catch (e) {
+        sendResponse({ error: "No se pudo iniciar pick mode" });
+      }
     });
     return true;
   }
@@ -81,6 +85,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "startKeyRecording") {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (!tabs[0]) return;
+      await ensureContentScript(tabs[0].id);
       try {
         await sendToTab(tabs[0].id, { action: "startKeyRecording" });
       } catch (e) {}
@@ -92,6 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "stopKeyRecording") {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (!tabs[0]) return;
+      await ensureContentScript(tabs[0].id);
       try {
         await sendToTab(tabs[0].id, { action: "stopKeyRecording" });
       } catch (e) {}
@@ -179,6 +185,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       }
     });
+    return true;
+  }
+
+  if (message.action === "getGlobalShortcuts") {
+    chrome.storage.local.get("globalShortcuts", (data) => {
+      sendResponse({ shortcuts: data.globalShortcuts || [] });
+    });
+    return true;
+  }
+
+  if (message.action === "saveGlobalShortcut") {
+    const { shortcut } = message;
+    chrome.storage.local.get("globalShortcuts", (data) => {
+      const shortcuts = data.globalShortcuts || [];
+      const idx = shortcuts.findIndex(
+        (s) => s.key === shortcut.key && s.modifiers === shortcut.modifiers
+      );
+      if (idx >= 0) {
+        shortcuts[idx] = shortcut;
+      } else {
+        shortcuts.push(shortcut);
+      }
+      chrome.storage.local.set({ globalShortcuts: shortcuts }, () => {
+        sendResponse({ success: true });
+      });
+    });
+    return true;
+  }
+
+  if (message.action === "deleteGlobalShortcut") {
+    const { command } = message;
+    chrome.storage.local.get("globalShortcuts", (data) => {
+      const shortcuts = (data.globalShortcuts || []).filter((s) => {
+        const sId = `${s.key}|${s.modifiers}`;
+        return sId !== command;
+      });
+      chrome.storage.local.set({ globalShortcuts: shortcuts }, () => {
+        sendResponse({ success: true });
+      });
+    });
+    return true;
+  }
+
+  if (message.action === "navigateToUrl") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.update(tabs[0].id, { url: message.url });
+      } else {
+        chrome.tabs.create({ url: message.url });
+      }
+    });
+    sendResponse({ ok: true });
     return true;
   }
 });
