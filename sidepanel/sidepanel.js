@@ -532,7 +532,7 @@ function renderShortcuts(shortcuts) {
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
-        <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
+        <button class="btn-icon btn-delete-shortcut" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" data-text="${escapeAttr(s.text || '')}" data-taglabel="${escapeAttr(s.tagLabel || s.tag || '')}" data-tag="${escapeAttr(s.tag || '')}" data-selector="${escapeAttr(s.selector || '')}" title="Eliminar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -559,18 +559,28 @@ function renderShortcuts(shortcuts) {
 
   shortcutList.querySelectorAll(".btn-delete-shortcut").forEach((btn) => {
     btn.addEventListener("click", () => {
-      chrome.runtime.sendMessage(
-        {
-          action: "deleteShortcut",
-          url: currentOrigin,
-          key: btn.dataset.key,
-          modifiers: btn.dataset.modifiers,
-        },
-        () => {
-          showToast("Eliminado");
-          loadShortcuts();
-        }
-      );
+      const shortcutData = {
+        key: btn.dataset.key,
+        modifiers: btn.dataset.modifiers,
+        text: btn.dataset.text,
+        tagLabel: btn.dataset.taglabel,
+        tag: btn.dataset.tag,
+        selector: btn.dataset.selector,
+      };
+      showDeleteConfirmModal(shortcutData, "page", () => {
+        chrome.runtime.sendMessage(
+          {
+            action: "deleteShortcut",
+            url: currentOrigin,
+            key: btn.dataset.key,
+            modifiers: btn.dataset.modifiers,
+          },
+          () => {
+            showToast("Eliminado");
+            loadShortcuts();
+          }
+        );
+      });
     });
   });
 

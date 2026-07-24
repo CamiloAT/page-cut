@@ -904,3 +904,46 @@ body {
   0%, 100% { border-color: var(--accent); }
   50% { border-color: var(--accent-light); }
 }
+
+.modal-delete {
+  width: 300px;
+}
+
+.delete-modal-detail {
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delete-modal-detail .delete-detail-keys {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.delete-modal-detail .delete-detail-url {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delete-modal-detail .delete-detail-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delete-modal-detail .delete-detail-selector {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}

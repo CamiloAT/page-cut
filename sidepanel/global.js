@@ -79,7 +79,9 @@ function renderGlobalShortcuts(shortcuts) {
       const modifiers = btn.dataset.modifiers;
       const existing = shortcuts.find((s) => s.key === key && s.modifiers === modifiers);
       if (!existing) return;
-      deleteGlobalShortcut(existing);
+      showDeleteConfirmModal(existing, "global", () => {
+        deleteGlobalShortcut(existing);
+      });
     });
   });
 }
@@ -249,4 +251,52 @@ function deleteGlobalShortcut(shortcut) {
     showToast("Eliminado");
     loadGlobalShortcuts();
   });
+}
+
+function showDeleteConfirmModal(shortcut, type, onConfirm) {
+  const modal = document.getElementById("deleteModal");
+  const backdrop = document.getElementById("deleteModalBackdrop");
+  const closeBtn = document.getElementById("closeDeleteModal");
+  const cancelBtn = document.getElementById("cancelDelete");
+  const confirmBtn = document.getElementById("confirmDelete");
+  const textEl = document.getElementById("deleteModalText");
+  const detailEl = document.getElementById("deleteModalDetail");
+
+  if (!modal || !backdrop || !closeBtn || !cancelBtn || !confirmBtn) return;
+
+  const keysHtml = buildKeysHtml(shortcut.key, shortcut.modifiers);
+
+  if (type === "global") {
+    textEl.textContent = "¿Estás seguro de que querés eliminar este shortcut global?";
+    detailEl.innerHTML = `
+      <div class="delete-detail-label">${escapeHtml(shortcut.label || shortcut.url)}</div>
+      <div class="delete-detail-keys">${keysHtml}</div>
+      <div class="delete-detail-url">${escapeHtml(shortcut.url)}</div>
+    `;
+  } else {
+    textEl.textContent = "¿Estás seguro de que querés eliminar este shortcut?";
+    detailEl.innerHTML = `
+      <div class="delete-detail-label">${escapeHtml(shortcut.text || shortcut.tagLabel || shortcut.tag)}</div>
+      <div class="delete-detail-keys">${keysHtml}</div>
+      <div class="delete-detail-selector">${escapeHtml(shortcut.selector)}</div>
+    `;
+  }
+
+  modal.classList.remove("hidden");
+
+  function close() {
+    modal.classList.add("hidden");
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+    const newConfirmBtn = document.getElementById("confirmDelete");
+    newConfirmBtn.addEventListener("click", () => {});
+  }
+
+  backdrop.addEventListener("click", close, { once: true });
+  closeBtn.addEventListener("click", close, { once: true });
+  cancelBtn.addEventListener("click", close, { once: true });
+
+  confirmBtn.addEventListener("click", () => {
+    close();
+    onConfirm();
+  }, { once: true });
 }
