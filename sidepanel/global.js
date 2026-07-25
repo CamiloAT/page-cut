@@ -6,7 +6,7 @@ let pendingGlobalShortcut = null;
 
 function loadGlobalShortcuts() {
   chrome.runtime.sendMessage({ action: "getGlobalShortcuts" }, (response) => {
-    const shortcuts = response?.shortcuts || [];
+    const shortcuts = (response?.shortcuts || []).filter(s => s && s.key && s.modifiers);
     renderGlobalShortcuts(shortcuts);
   });
 }
