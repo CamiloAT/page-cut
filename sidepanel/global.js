@@ -116,23 +116,63 @@ function onGlobalRecordKeydown(e) {
   if (e.altKey) modifiers.push("Alt");
   if (e.metaKey) modifiers.push("Meta");
 
-  if (modifiers.length === 0) return;
+  if (modifiers.length === 0) {
+    showToast("Usa Ctrl, Shift o Alt como modificador");
+    return;
+  }
 
   const key = e.key.toUpperCase();
-  globalRecording = false;
-  document.removeEventListener("keydown", onGlobalRecordKeydown, true);
-
   const keyDisplay = document.getElementById("globalKeyDisplay");
   const saveBtn = document.getElementById("globalSaveForm");
   if (!keyDisplay) return;
 
   keyDisplay.classList.remove("recording");
 
+  if (isReserved(key, modifiers.join("+"))) {
+    const display = [...modifiers, key].join(" + ");
+    globalRecording = false;
+    document.removeEventListener("keydown", onGlobalRecordKeydown, true);
+    keyDisplay.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        ${renderKeyCombination(display, "danger")}
+        <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
+        <button class="btn-retry" id="globalRetryKey">Reintentar</button>
+      </div>`;
+    document.getElementById("globalRetryKey").addEventListener("click", () => {
+      globalRecording = true;
+      keyDisplay.classList.add("recording");
+      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      document.addEventListener("keydown", onGlobalRecordKeydown, true);
+    });
+    pendingGlobalShortcut = pendingGlobalShortcut || {};
+    delete pendingGlobalShortcut.key;
+    delete pendingGlobalShortcut.modifiers;
+    if (saveBtn) saveBtn.disabled = true;
+    return;
+  }
+
+  const display = [...modifiers, key].join(" + ");
+  globalRecording = false;
+  document.removeEventListener("keydown", onGlobalRecordKeydown, true);
+
   pendingGlobalShortcut = pendingGlobalShortcut || {};
   pendingGlobalShortcut.key = key;
   pendingGlobalShortcut.modifiers = modifiers.join("+");
 
-  keyDisplay.innerHTML = buildKeysHtml(key, modifiers.join("+"));
+  keyDisplay.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+      ${renderKeyCombination(display, "success")}
+      <button class="btn-retry" id="globalRetryKey">Cambiar tecla</button>
+    </div>`;
+  document.getElementById("globalRetryKey").addEventListener("click", () => {
+    globalRecording = true;
+    keyDisplay.classList.add("recording");
+    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    delete pendingGlobalShortcut.key;
+    delete pendingGlobalShortcut.modifiers;
+    if (saveBtn) saveBtn.disabled = true;
+    document.addEventListener("keydown", onGlobalRecordKeydown, true);
+  });
 
   if (saveBtn) {
     const urlInput = document.getElementById("globalUrlInput");
@@ -151,15 +191,8 @@ function openGlobalForm(existing) {
       <div class="global-form-step">
         <label class="form-label">Presiona la combinación de teclas:</label>
         <div class="global-key-display" id="globalKeyDisplay">
-          ${existing ? buildKeysHtml(existing.key, existing.modifiers) : '<span class="key-placeholder">Esperando tecla...</span>'}
+          ${existing ? buildKeysHtml(existing.key, existing.modifiers) : '<span class="key-placeholder">Presiona una combinación de teclas...</span>'}
         </div>
-        <button class="btn btn-secondary btn-full" id="globalRetryKey">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6M23 20v-6h-6"/>
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-          </svg>
-          Reintentar
-        </button>
       </div>
       <div class="global-form-step">
         <label class="form-label" for="globalUrlInput">URL de destino:</label>
@@ -179,7 +212,6 @@ function openGlobalForm(existing) {
   globalList.innerHTML = formHtml;
 
   const keyDisplay = document.getElementById("globalKeyDisplay");
-  const retryBtn = document.getElementById("globalRetryKey");
   const urlInput = document.getElementById("globalUrlInput");
   const labelInput = document.getElementById("globalLabelInput");
   const saveBtn = document.getElementById("globalSaveForm");
@@ -187,12 +219,11 @@ function openGlobalForm(existing) {
 
   function startKeyRecording() {
     globalRecording = true;
-    keyDisplay.innerHTML = '<span class="key-placeholder">Escuchando...</span>';
+    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
     keyDisplay.classList.add("recording");
     document.addEventListener("keydown", onGlobalRecordKeydown, true);
   }
 
-  retryBtn.addEventListener("click", startKeyRecording);
   urlInput.addEventListener("input", () => {
     const hasKey = pendingGlobalShortcut && pendingGlobalShortcut.key;
     const hasUrl = urlInput.value.trim().startsWith("http");
