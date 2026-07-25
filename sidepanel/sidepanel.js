@@ -381,7 +381,7 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey) modifiers.push("Meta");
 
   if (modifiers.length === 0) {
-    showToast("Usá Ctrl, Shift o Alt como modificador");
+    showToast("Usa Ctrl, Shift o Alt como modificador");
     return;
   }
 

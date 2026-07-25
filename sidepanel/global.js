@@ -13,7 +13,7 @@ function loadGlobalShortcuts() {
 
 function renderGlobalShortcuts(shortcuts) {
   if (shortcuts.length === 0) {
-    globalList.innerHTML = '<p class="empty-state">No hay shortcuts globales. Agregá uno con el botón de arriba.</p>';
+    globalList.innerHTML = '<p class="empty-state">No hay shortcuts globales. Agrega uno con el botón de arriba.</p>';
     return;
   }
 
@@ -149,7 +149,7 @@ function openGlobalForm(existing) {
   const formHtml = `
     <div class="global-form">
       <div class="global-form-step">
-        <label class="form-label">Presioná la combinación de teclas:</label>
+        <label class="form-label">Presiona la combinación de teclas:</label>
         <div class="global-key-display" id="globalKeyDisplay">
           ${existing ? buildKeysHtml(existing.key, existing.modifiers) : '<span class="key-placeholder">Esperando tecla...</span>'}
         </div>
@@ -267,14 +267,14 @@ function showDeleteConfirmModal(shortcut, type, onConfirm) {
   const keysHtml = buildKeysHtml(shortcut.key, shortcut.modifiers);
 
   if (type === "global") {
-    textEl.textContent = "¿Estás seguro de que querés eliminar este shortcut global?";
+    textEl.textContent = "¿Estás seguro de que quieres eliminar este shortcut global?";
     detailEl.innerHTML = `
       <div class="delete-detail-label">${escapeHtml(shortcut.label || shortcut.url)}</div>
       <div class="delete-detail-keys">${keysHtml}</div>
       <div class="delete-detail-url">${escapeHtml(shortcut.url)}</div>
     `;
   } else {
-    textEl.textContent = "¿Estás seguro de que querés eliminar este shortcut?";
+    textEl.textContent = "¿Estás seguro de que quieres eliminar este shortcut?";
     detailEl.innerHTML = `
       <div class="delete-detail-label">${escapeHtml(shortcut.text || shortcut.tagLabel || shortcut.tag)}</div>
       <div class="delete-detail-keys">${keysHtml}</div>
