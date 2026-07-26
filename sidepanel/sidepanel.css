@@ -864,6 +864,14 @@ body {
   color: #388e3c;
 }
 
+.new-tab-badge {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
 .global-form {
   display: flex;
   flex-direction: column;

@@ -244,13 +244,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "navigateToUrl") {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.update(tabs[0].id, { url: message.url });
-      } else {
-        chrome.tabs.create({ url: message.url });
-      }
-    });
+    if (message.newTab) {
+      chrome.tabs.create({ url: message.url });
+    } else {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.update(tabs[0].id, { url: message.url });
+        } else {
+          chrome.tabs.create({ url: message.url });
+        }
+      });
+    }
     sendResponse({ ok: true });
     return true;
   }

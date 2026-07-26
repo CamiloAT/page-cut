@@ -22,10 +22,11 @@ function renderGlobalShortcuts(shortcuts) {
 
   for (const s of shortcuts) {
     const keysHtml = buildKeysHtml(s.key, s.modifiers);
+    const newTabBadge = s.newTab ? '<span class="new-tab-badge" title="Abre en pestaña nueva">↗</span>' : '';
     html += `
       <div class="global-row">
         <div class="global-col-keys">${keysHtml}</div>
-        <div class="global-col-label">${escapeHtml(s.label)}</div>
+        <div class="global-col-label">${escapeHtml(s.label)}${newTabBadge}</div>
         <div class="global-col-url">${escapeHtml(s.url)}</div>
         <div class="global-col-actions">
           <button class="btn-icon btn-test-global" data-url="${escapeAttr(s.url)}" title="Probar">
@@ -202,6 +203,10 @@ function openGlobalForm(existing) {
         <label class="form-label" for="globalLabelInput">Etiqueta (opcional):</label>
         <input type="text" class="form-input" id="globalLabelInput" placeholder="Mi shortcut" value="${existing ? escapeAttr(existing.label || '') : ''}">
       </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="globalNewTab" ${existing && existing.newTab ? 'checked' : ''}>
+        <span>Abrir en pestaña nueva</span>
+      </label>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="globalCancelForm">Cancelar</button>
         <button class="btn btn-primary" id="globalSaveForm" ${existing ? '' : 'disabled'}>Guardar</button>
@@ -214,6 +219,7 @@ function openGlobalForm(existing) {
   const keyDisplay = document.getElementById("globalKeyDisplay");
   const urlInput = document.getElementById("globalUrlInput");
   const labelInput = document.getElementById("globalLabelInput");
+  const newTabCheckbox = document.getElementById("globalNewTab");
   const saveBtn = document.getElementById("globalSaveForm");
   const cancelBtn = document.getElementById("globalCancelForm");
 
@@ -242,6 +248,7 @@ function openGlobalForm(existing) {
       modifiers: pendingGlobalShortcut.modifiers,
       url: url,
       label: labelInput.value.trim() || url.replace(/^https?:\/\//, "").split("/")[0],
+      newTab: newTabCheckbox.checked,
     };
 
     const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);

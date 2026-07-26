@@ -33,7 +33,7 @@
     if (match && match.url) {
       e.preventDefault();
       e.stopPropagation();
-      chrome.runtime.sendMessage({ action: "navigateToUrl", url: match.url });
+      chrome.runtime.sendMessage({ action: "navigateToUrl", url: match.url, newTab: match.newTab });
     }
   }
 
