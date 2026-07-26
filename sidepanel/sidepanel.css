@@ -118,6 +118,10 @@ body {
   display: none;
 }
 
+.tabs.hidden {
+  display: none;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -961,4 +965,41 @@ body {
   color: var(--danger);
   font-weight: 500;
   margin-top: 4px;
+}
+
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.welcome-screen.hidden {
+  display: none;
+}
+
+.welcome-screen h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.welcome-screen p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+.welcome-screen code {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
 }

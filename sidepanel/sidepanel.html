@@ -19,10 +19,19 @@
       <span class="url-badge" id="currentUrl" title="URL actual">—</span>
     </header>
 
-    <div class="tabs">
+    <div class="tabs" id="mainTabs">
       <button class="tab active" data-tab="pick">Pick</button>
       <button class="tab" data-tab="shortcuts">Shortcuts <span id="shortcutCount"></span></button>
       <button class="tab" data-tab="global">Global</button>
+    </div>
+
+    <div class="welcome-screen hidden" id="welcomeScreen">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="#a8d5a2"/>
+        <path d="M7 12h10M12 7v10" stroke="#2d3a2d" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h2>Page Cut</h2>
+      <p>Navegá a una página fuera de <code>chrome://</code> para empezar a usar la extensión.</p>
     </div>
 
     <div class="tab-content" id="tab-pick">

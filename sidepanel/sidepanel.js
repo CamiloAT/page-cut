@@ -30,6 +30,8 @@ const confirmEdit = document.getElementById("confirmEdit");
 const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
 const toggleResults = document.getElementById("toggleResults");
+const welcomeScreen = document.getElementById("welcomeScreen");
+const mainTabs = document.getElementById("mainTabs");
 
 let currentOrigin = "";
 let currentTabId = null;
@@ -48,17 +50,37 @@ async function updateCurrentTab() {
     const newOrigin = url.origin;
     currentTabId = tab.id;
 
+    if (url.protocol === "chrome:" || url.href === "chrome://newtab/") {
+      currentOrigin = "";
+      currentUrl.textContent = "Navegador interno";
+      currentUrl.title = "";
+      welcomeScreen.classList.remove("hidden");
+      mainTabs.classList.add("hidden");
+      document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
+      return;
+    }
+
+    welcomeScreen.classList.add("hidden");
+    mainTabs.classList.remove("hidden");
+
     if (newOrigin !== currentOrigin) {
       currentOrigin = newOrigin;
       currentUrl.textContent = url.hostname;
       currentUrl.title = url.href;
       loadShortcuts();
+      const activeTab = document.querySelector(".tab.active");
+      if (activeTab) {
+        document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
+        document.getElementById(`tab-${activeTab.dataset.tab}`).classList.remove("hidden");
+      }
     }
   } catch {
     currentOrigin = "";
     currentUrl.textContent = "Navegador interno";
     currentUrl.title = "";
-    shortcutList.innerHTML = '<p class="empty-state">No disponible en esta página</p>';
+    welcomeScreen.classList.remove("hidden");
+    mainTabs.classList.add("hidden");
+    document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
   }
 }
 
