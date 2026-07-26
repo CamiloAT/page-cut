@@ -3,6 +3,7 @@
   window.__pageCutGlobalLoaded = true;
 
   let currentGlobalShortcuts = [];
+  let alive = true;
 
   function getModifiersFromEvent(e) {
     const mods = [];
@@ -14,6 +15,7 @@
   }
 
   function handleKeydown(e) {
+    if (!alive) return;
     if (
       e.target.tagName === "INPUT" ||
       e.target.tagName === "TEXTAREA" ||
@@ -38,19 +40,35 @@
   document.addEventListener("keydown", handleKeydown, true);
 
   function loadFromStorage() {
-    chrome.storage.local.get("globalShortcuts", (data) => {
-      const shortcuts = data.globalShortcuts || [];
-      currentGlobalShortcuts = shortcuts.filter(s => s && s.key && s.modifiers);
-    });
+    if (!alive) return;
+    try {
+      chrome.storage.local.get("globalShortcuts", (data) => {
+        if (!alive) return;
+        const shortcuts = data.globalShortcuts || [];
+        currentGlobalShortcuts = shortcuts.filter(s => s && s.key && s.modifiers);
+      });
+    } catch (e) {
+      alive = false;
+      clearInterval(pollId);
+    }
   }
 
   loadFromStorage();
-  setInterval(loadFromStorage, 3000);
+  const pollId = setInterval(() => {
+    if (!alive) { clearInterval(pollId); return; }
+    loadFromStorage();
+  }, 3000);
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.globalShortcuts) {
-      currentGlobalShortcuts = (changes.globalShortcuts.newValue || [])
-        .filter(s => s && s.key && s.modifiers);
-    }
-  });
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (!alive) return;
+      if (area === "local" && changes.globalShortcuts) {
+        currentGlobalShortcuts = (changes.globalShortcuts.newValue || [])
+          .filter(s => s && s.key && s.modifiers);
+      }
+    });
+  } catch (e) {
+    alive = false;
+    clearInterval(pollId);
+  }
 })();
