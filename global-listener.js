@@ -13,26 +13,6 @@
     return mods.join("+");
   }
 
-  async function loadGlobalShortcuts() {
-    try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          { action: "getGlobalShortcuts" },
-          (resp) => {
-            if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
-            } else {
-              resolve(resp);
-            }
-          }
-        );
-      });
-      currentGlobalShortcuts = response?.shortcuts || [];
-    } catch (e) {
-      currentGlobalShortcuts = [];
-    }
-  }
-
   function handleKeydown(e) {
     if (
       e.target.tagName === "INPUT" ||
@@ -57,18 +37,20 @@
 
   document.addEventListener("keydown", handleKeydown, true);
 
-  async function initWithRetry() {
-    for (let i = 0; i < 5; i++) {
-      try {
-        await loadGlobalShortcuts();
-        return;
-      } catch (e) {
-        await new Promise((r) => setTimeout(r, 500));
-      }
-    }
+  function loadFromStorage() {
+    chrome.storage.local.get("globalShortcuts", (data) => {
+      const shortcuts = data.globalShortcuts || [];
+      currentGlobalShortcuts = shortcuts.filter(s => s && s.key && s.modifiers);
+    });
   }
 
-  initWithRetry();
+  loadFromStorage();
+  setInterval(loadFromStorage, 3000);
 
-  setInterval(loadGlobalShortcuts, 3000);
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.globalShortcuts) {
+      currentGlobalShortcuts = (changes.globalShortcuts.newValue || [])
+        .filter(s => s && s.key && s.modifiers);
+    }
+  });
 })();

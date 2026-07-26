@@ -17,6 +17,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           files: ["content.js"],
         });
       }
+      await ensureGlobalListener(tabId);
     } catch (e) {}
   }
 });
@@ -35,6 +36,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
         files: ["content.js"],
       });
     }
+    await ensureGlobalListener(tabId);
   } catch (e) {}
 });
 
@@ -44,6 +46,19 @@ async function ensureContentScript(tabId) {
       target: { tabId },
       files: ["content.js"],
     });
+  } catch (e) {}
+}
+
+async function ensureGlobalListener(tabId) {
+  try {
+    const data = await chrome.storage.local.get("globalShortcuts");
+    const globalShortcuts = data.globalShortcuts || [];
+    if (globalShortcuts.length > 0) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["global-listener.js"],
+      });
+    }
   } catch (e) {}
 }
 
