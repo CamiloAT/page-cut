@@ -331,3 +331,13 @@ function showDeleteConfirmModal(shortcut, type, onConfirm) {
     onConfirm();
   }, { once: true });
 }
+
+chrome.tabs.onActivated.addListener(() => {
+  updateCurrentTab();
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "complete") {
+    updateCurrentTab();
+  }
+});
