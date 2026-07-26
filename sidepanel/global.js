@@ -3,10 +3,12 @@ const addGlobalBtn = document.getElementById("addGlobalBtn");
 
 let globalRecording = false;
 let pendingGlobalShortcut = null;
+let cachedGlobalShortcuts = [];
 
 function loadGlobalShortcuts() {
   chrome.runtime.sendMessage({ action: "getGlobalShortcuts" }, (response) => {
     const shortcuts = (response?.shortcuts || []).filter(s => s && s.key && s.modifiers);
+    cachedGlobalShortcuts = shortcuts;
     renderGlobalShortcuts(shortcuts);
   });
 }
@@ -155,6 +157,40 @@ function onGlobalRecordKeydown(e) {
   const display = [...modifiers, key].join(" + ");
   globalRecording = false;
   document.removeEventListener("keydown", onGlobalRecordKeydown, true);
+
+  const excludeKey = pendingGlobalShortcut && pendingGlobalShortcut.key ? pendingGlobalShortcut.key : null;
+  const excludeMods = pendingGlobalShortcut && pendingGlobalShortcut.modifiers ? pendingGlobalShortcut.modifiers : null;
+  const dupes = findDuplicateForGlobal(key, modifiers.join("+"), excludeKey, excludeMods);
+
+  if (dupes.length > 0) {
+    showDuplicateModal(dupes, () => {
+      pendingGlobalShortcut = pendingGlobalShortcut || {};
+      pendingGlobalShortcut.key = key;
+      pendingGlobalShortcut.modifiers = modifiers.join("+");
+
+      keyDisplay.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+          ${renderKeyCombination(display, "success")}
+          <button class="btn-retry" id="globalRetryKey">Cambiar tecla</button>
+        </div>`;
+      document.getElementById("globalRetryKey").addEventListener("click", () => {
+        globalRecording = true;
+        keyDisplay.classList.add("recording");
+        keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+        delete pendingGlobalShortcut.key;
+        delete pendingGlobalShortcut.modifiers;
+        if (saveBtn) saveBtn.disabled = true;
+        document.addEventListener("keydown", onGlobalRecordKeydown, true);
+      });
+
+      if (saveBtn) {
+        const urlInput = document.getElementById("globalUrlInput");
+        const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
+        saveBtn.disabled = !hasUrl;
+      }
+    });
+    return;
+  }
 
   pendingGlobalShortcut = pendingGlobalShortcut || {};
   pendingGlobalShortcut.key = key;
@@ -326,6 +362,86 @@ function showDeleteConfirmModal(shortcut, type, onConfirm) {
     modal.classList.add("hidden");
     confirmBtn.replaceWith(confirmBtn.cloneNode(true));
     const newConfirmBtn = document.getElementById("confirmDelete");
+    newConfirmBtn.addEventListener("click", () => {});
+  }
+
+  backdrop.addEventListener("click", close, { once: true });
+  closeBtn.addEventListener("click", close, { once: true });
+  cancelBtn.addEventListener("click", close, { once: true });
+
+  confirmBtn.addEventListener("click", () => {
+    close();
+    onConfirm();
+  }, { once: true });
+}
+
+let cachedLocalShortcuts = [];
+
+function findDuplicateForLocal(key, modifiers, excludeKey, excludeModifiers) {
+  const dupes = [];
+  for (const s of cachedGlobalShortcuts) {
+    if (s.key === key && s.modifiers === modifiers) {
+      if (!(excludeKey && excludeModifiers && s.key === excludeKey && s.modifiers === excludeModifiers)) {
+        dupes.push({ type: "global", label: s.label || s.url, detail: s.url });
+      }
+    }
+  }
+  for (const s of cachedLocalShortcuts) {
+    if (s.key === key && s.modifiers === modifiers) {
+      if (!(excludeKey && excludeModifiers && s.key === excludeKey && s.modifiers === excludeModifiers)) {
+        dupes.push({ type: "page", label: s.text || s.tagLabel || s.tag, detail: s.selector });
+      }
+    }
+  }
+  return dupes;
+}
+
+function findDuplicateForGlobal(key, modifiers, excludeKey, excludeModifiers) {
+  const dupes = [];
+  for (const s of cachedGlobalShortcuts) {
+    if (s.key === key && s.modifiers === modifiers) {
+      if (!(excludeKey && excludeModifiers && s.key === excludeKey && s.modifiers === excludeModifiers)) {
+        dupes.push({ type: "global", label: s.label || s.url, detail: s.url });
+      }
+    }
+  }
+  for (const s of cachedLocalShortcuts) {
+    if (s.key === key && s.modifiers === modifiers) {
+      dupes.push({ type: "page", label: s.text || s.tagLabel || s.tag, detail: s.selector });
+    }
+  }
+  return dupes;
+}
+
+function showDuplicateModal(dupes, onConfirm) {
+  const modal = document.getElementById("duplicateModal");
+  const backdrop = document.getElementById("duplicateModalBackdrop");
+  const closeBtn = document.getElementById("closeDuplicateModal");
+  const cancelBtn = document.getElementById("cancelDuplicate");
+  const confirmBtn = document.getElementById("confirmDuplicate");
+  const detailEl = document.getElementById("duplicateModalDetail");
+
+  if (!modal || !backdrop || !closeBtn || !cancelBtn || !confirmBtn) return;
+
+  let html = "";
+  for (const d of dupes) {
+    const typeLabel = d.type === "global" ? "Global" : "Esta página";
+    html += `
+      <div class="delete-detail-label">${escapeHtml(d.label)}</div>
+      <div class="delete-detail-url" style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;color:var(--text-secondary);">${typeLabel}:</span>
+        <span style="font-family:'SF Mono',Monaco,monospace;font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(d.detail)}</span>
+      </div>
+    `;
+  }
+  detailEl.innerHTML = html;
+
+  modal.classList.remove("hidden");
+
+  function close() {
+    modal.classList.add("hidden");
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+    const newConfirmBtn = document.getElementById("confirmDuplicate");
     newConfirmBtn.addEventListener("click", () => {});
   }
 

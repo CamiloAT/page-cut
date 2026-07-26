@@ -955,3 +955,10 @@ body {
   font-size: 10px;
   color: var(--text-muted);
 }
+
+.duplicate-warning {
+  font-size: 12px;
+  color: var(--danger);
+  font-weight: 500;
+  margin-top: 4px;
+}

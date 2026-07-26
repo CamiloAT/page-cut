@@ -183,6 +183,28 @@
       </div>
     </div>
 
+    <div class="modal hidden" id="duplicateModal">
+      <div class="modal-backdrop" id="duplicateModalBackdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Shortcut ya asignado</h3>
+          <button class="btn-icon" id="closeDuplicateModal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="delete-modal-detail" id="duplicateModalDetail"></div>
+          <p class="duplicate-warning">Si continúas, se reescribirá el shortcut existente.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelDuplicate">Cancelar</button>
+          <button class="btn btn-primary" id="confirmDuplicate">Continuar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast hidden" id="toast">
       <span id="toastMessage"></span>
     </div>

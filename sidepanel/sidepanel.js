@@ -425,6 +425,50 @@ document.addEventListener("keydown", (e) => {
     display: [...modifiers, key].join(" + "),
   };
 
+  const excludeKey = isEditRecording && editingShortcut ? editingShortcut.key : null;
+  const excludeMods = isEditRecording && editingShortcut ? editingShortcut.modifiers : null;
+  const dupes = findDuplicateForLocal(key, modifiers.join("+"), excludeKey, excludeMods);
+
+  if (dupes.length > 0) {
+    const targetDisplay = isEditRecording ? editKeyDisplay : keyDisplay;
+    targetDisplay.classList.remove("recording");
+    showDuplicateModal(dupes, () => {
+      targetDisplay.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+          ${renderKeyCombination(recorded.display, "success")}
+          <button class="btn-retry">
+            Cambiar tecla
+          </button>
+        </div>`;
+      targetDisplay.querySelector(".btn-retry").addEventListener("click", () => {
+        if (isEditRecording) {
+          editRecordedKeys = null;
+          editKeyDisplay.classList.add("recording");
+          editKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona nueva combinación...</span>';
+          confirmEdit.disabled = true;
+        } else {
+          isRecording = true;
+          keyRecording = true;
+          recordedKeys = null;
+          keyDisplay.classList.add("recording");
+          keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+          confirmAssign.disabled = true;
+        }
+        chrome.runtime.sendMessage({ action: "startKeyRecording" });
+      });
+      if (isEditRecording) {
+        editRecordedKeys = recorded;
+        confirmEdit.disabled = false;
+      } else {
+        recordedKeys = recorded;
+        confirmAssign.disabled = false;
+      }
+      isRecording = false;
+      isEditRecording = false;
+    });
+    return;
+  }
+
   const targetDisplay = isEditRecording ? editKeyDisplay : keyDisplay;
   targetDisplay.classList.remove("recording");
   targetDisplay.innerHTML = `
@@ -498,6 +542,7 @@ function loadShortcuts() {
     { action: "getShortcuts", url: currentOrigin },
     (response) => {
       const shortcuts = response?.shortcuts || [];
+      cachedLocalShortcuts = shortcuts;
       renderShortcuts(shortcuts);
       shortcutCount.textContent = shortcuts.length > 0 ? `${shortcuts.length} shortcut${shortcuts.length > 1 ? "s" : ""}` : "";
     }
