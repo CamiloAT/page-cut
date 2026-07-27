@@ -709,6 +709,22 @@ body {
   color: var(--text-muted);
 }
 
+.form-input.error {
+  border-color: #e57373;
+  box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.15);
+}
+
+.form-error {
+  font-size: 10px;
+  color: #e57373;
+  margin-top: -7px;
+  display: none;
+}
+
+.form-error.visible {
+  display: block;
+}
+
 .toast {
   position: fixed;
   bottom: 16px;
@@ -941,6 +957,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 4px;
 }
 
 .global-form-extra.hidden {

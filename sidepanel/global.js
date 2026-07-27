@@ -244,6 +244,7 @@ function openGlobalForm(existing) {
         <div class="global-form-step">
           <label class="form-label" for="globalUrlInput">URL de destino:</label>
           <input type="url" class="form-input" id="globalUrlInput" placeholder="https://ejemplo.com" value="${existing ? escapeAttr(existing.url) : ''}">
+          <div class="form-error" id="globalUrlError">La URL debe comenzar con https://</div>
         </div>
         <div class="global-form-step">
           <label class="form-label" for="globalLabelInput">Etiqueta (opcional):</label>
@@ -266,6 +267,7 @@ function openGlobalForm(existing) {
   const keyDisplay = document.getElementById("globalKeyDisplay");
   const globalFormExtra = document.getElementById("globalFormExtra");
   const urlInput = document.getElementById("globalUrlInput");
+  const urlError = document.getElementById("globalUrlError");
   const labelInput = document.getElementById("globalLabelInput");
   const newTabCheckbox = document.getElementById("globalNewTab");
   const saveBtn = document.getElementById("globalSaveForm");
@@ -280,8 +282,19 @@ function openGlobalForm(existing) {
 
   urlInput.addEventListener("input", () => {
     const hasKey = pendingGlobalShortcut && pendingGlobalShortcut.key;
-    const hasUrl = urlInput.value.trim().startsWith("http");
+    const val = urlInput.value.trim();
+    const hasUrl = val.startsWith("http");
     saveBtn.disabled = !(hasKey && hasUrl);
+    if (val.length === 0) {
+      urlInput.classList.remove("error");
+      urlError.classList.remove("visible");
+    } else if (!hasUrl) {
+      urlInput.classList.add("error");
+      urlError.classList.add("visible");
+    } else {
+      urlInput.classList.remove("error");
+      urlError.classList.remove("visible");
+    }
   });
 
   saveBtn.addEventListener("click", () => {
