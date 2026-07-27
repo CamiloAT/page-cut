@@ -649,6 +649,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
+  margin-top: 6px;
 }
 
 .checkbox-label input[type="checkbox"] {
