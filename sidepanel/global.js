@@ -177,12 +177,14 @@ function onGlobalRecordKeydown(e) {
         globalRecording = true;
         keyDisplay.classList.add("recording");
         keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+        globalFormExtra.classList.add("hidden");
         delete pendingGlobalShortcut.key;
         delete pendingGlobalShortcut.modifiers;
         if (saveBtn) saveBtn.disabled = true;
         document.addEventListener("keydown", onGlobalRecordKeydown, true);
       });
 
+      globalFormExtra.classList.remove("hidden");
       if (saveBtn) {
         const urlInput = document.getElementById("globalUrlInput");
         const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
@@ -205,12 +207,14 @@ function onGlobalRecordKeydown(e) {
     globalRecording = true;
     keyDisplay.classList.add("recording");
     keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    globalFormExtra.classList.add("hidden");
     delete pendingGlobalShortcut.key;
     delete pendingGlobalShortcut.modifiers;
     if (saveBtn) saveBtn.disabled = true;
     document.addEventListener("keydown", onGlobalRecordKeydown, true);
   });
 
+  globalFormExtra.classList.remove("hidden");
   if (saveBtn) {
     const urlInput = document.getElementById("globalUrlInput");
     const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
@@ -231,18 +235,20 @@ function openGlobalForm(existing) {
           ${existing ? buildKeysHtml(existing.key, existing.modifiers) : '<span class="key-placeholder">Presiona una combinación de teclas...</span>'}
         </div>
       </div>
-      <div class="global-form-step">
-        <label class="form-label" for="globalUrlInput">URL de destino:</label>
-        <input type="url" class="form-input" id="globalUrlInput" placeholder="https://ejemplo.com" value="${existing ? escapeAttr(existing.url) : ''}">
+      <div class="global-form-extra ${existing ? '' : 'hidden'}" id="globalFormExtra">
+        <div class="global-form-step">
+          <label class="form-label" for="globalUrlInput">URL de destino:</label>
+          <input type="url" class="form-input" id="globalUrlInput" placeholder="https://ejemplo.com" value="${existing ? escapeAttr(existing.url) : ''}">
+        </div>
+        <div class="global-form-step">
+          <label class="form-label" for="globalLabelInput">Etiqueta (opcional):</label>
+          <input type="text" class="form-input" id="globalLabelInput" placeholder="Mi shortcut" value="${existing ? escapeAttr(existing.label || '') : ''}">
+        </div>
+        <label class="checkbox-label">
+          <input type="checkbox" id="globalNewTab" ${existing && existing.newTab ? 'checked' : ''}>
+          <span>Abrir en pestaña nueva</span>
+        </label>
       </div>
-      <div class="global-form-step">
-        <label class="form-label" for="globalLabelInput">Etiqueta (opcional):</label>
-        <input type="text" class="form-input" id="globalLabelInput" placeholder="Mi shortcut" value="${existing ? escapeAttr(existing.label || '') : ''}">
-      </div>
-      <label class="checkbox-label">
-        <input type="checkbox" id="globalNewTab" ${existing && existing.newTab ? 'checked' : ''}>
-        <span>Abrir en pestaña nueva</span>
-      </label>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="globalCancelForm">Cancelar</button>
         <button class="btn btn-primary" id="globalSaveForm" ${existing ? '' : 'disabled'}>Guardar</button>
@@ -253,6 +259,7 @@ function openGlobalForm(existing) {
   globalList.innerHTML = formHtml;
 
   const keyDisplay = document.getElementById("globalKeyDisplay");
+  const globalFormExtra = document.getElementById("globalFormExtra");
   const urlInput = document.getElementById("globalUrlInput");
   const labelInput = document.getElementById("globalLabelInput");
   const newTabCheckbox = document.getElementById("globalNewTab");

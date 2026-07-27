@@ -942,6 +942,10 @@ body {
   gap: 8px;
 }
 
+.global-form-extra.hidden {
+  display: none;
+}
+
 .global-key-display {
   display: flex;
   align-items: center;
