@@ -697,11 +697,42 @@ chrome.runtime.onMessage.addListener((message) => {
       isRecording = false;
       return;
     }
-    recordedKeys = {
+    const recorded = {
       key,
       modifiers,
       display,
     };
+
+    const excludeKey = editingShortcut ? editingShortcut.key : null;
+    const excludeMods = editingShortcut ? editingShortcut.modifiers : null;
+    const dupes = findDuplicateForLocal(key, modifiers, excludeKey, excludeMods);
+
+    if (dupes.length > 0) {
+      showDuplicateModal(dupes, () => {
+        keyDisplay.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+            ${renderKeyCombination(display, "success")}
+            <button id="retryKeyBtn" class="btn-retry">
+              Cambiar tecla
+            </button>
+          </div>`;
+        document.getElementById("retryKeyBtn").addEventListener("click", () => {
+          isRecording = true;
+          keyRecording = true;
+          recordedKeys = null;
+          keyDisplay.classList.add("recording");
+          keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+          confirmAssign.disabled = true;
+          chrome.runtime.sendMessage({ action: "startKeyRecording" });
+        });
+        recordedKeys = recorded;
+        confirmAssign.disabled = false;
+        isRecording = false;
+      });
+      return;
+    }
+
+    recordedKeys = recorded;
     keyDisplay.classList.remove("recording");
     keyDisplay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">

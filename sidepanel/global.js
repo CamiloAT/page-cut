@@ -190,6 +190,11 @@ function onGlobalRecordKeydown(e) {
         const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
         saveBtn.disabled = !hasUrl;
       }
+    }, () => {
+      globalRecording = true;
+      keyDisplay.classList.add("recording");
+      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      document.addEventListener("keydown", onGlobalRecordKeydown, true);
     });
     return;
   }
@@ -420,7 +425,7 @@ function findDuplicateForGlobal(key, modifiers, excludeKey, excludeModifiers) {
   return dupes;
 }
 
-function showDuplicateModal(dupes, onConfirm) {
+function showDuplicateModal(dupes, onConfirm, onCancel) {
   const modal = document.getElementById("duplicateModal");
   const backdrop = document.getElementById("duplicateModalBackdrop");
   const closeBtn = document.getElementById("closeDuplicateModal");
@@ -454,7 +459,10 @@ function showDuplicateModal(dupes, onConfirm) {
 
   backdrop.addEventListener("click", close, { once: true });
   closeBtn.addEventListener("click", close, { once: true });
-  cancelBtn.addEventListener("click", close, { once: true });
+  cancelBtn.addEventListener("click", () => {
+    close();
+    if (onCancel) onCancel();
+  }, { once: true });
 
   confirmBtn.addEventListener("click", () => {
     close();
