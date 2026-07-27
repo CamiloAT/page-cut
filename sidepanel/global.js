@@ -237,10 +237,10 @@ function openGlobalForm(existing) {
       <div class="global-form-step">
         <label class="form-label">Presiona la combinación de teclas:</label>
         <div class="global-key-display" id="globalKeyDisplay">
-          ${existing ? buildKeysHtml(existing.key, existing.modifiers) : '<span class="key-placeholder">Presiona una combinación de teclas...</span>'}
+          <span class="key-placeholder">Presiona una combinación de teclas...</span>
         </div>
       </div>
-      <div class="global-form-extra ${existing ? '' : 'hidden'}" id="globalFormExtra">
+      <div class="global-form-extra hidden" id="globalFormExtra">
         <div class="global-form-step">
           <label class="form-label" for="globalUrlInput">URL de destino:</label>
           <input type="url" class="form-input" id="globalUrlInput" placeholder="https://ejemplo.com" value="${existing ? escapeAttr(existing.url) : ''}">
@@ -256,7 +256,7 @@ function openGlobalForm(existing) {
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="globalCancelForm">Cancelar</button>
-        <button class="btn btn-primary" id="globalSaveForm" ${existing ? '' : 'disabled'}>Guardar</button>
+        <button class="btn btn-primary" id="globalSaveForm" disabled>Guardar</button>
       </div>
     </div>
   `;
@@ -301,19 +301,20 @@ function openGlobalForm(existing) {
 
     const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
 
+    const toastMsg = existing ? "Actualizado" : "Guardado";
     if (keyChanged) {
       chrome.runtime.sendMessage({
         action: "deleteGlobalShortcut",
         command: `${existing.key}|${existing.modifiers}`,
       }, () => {
         chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-          showToast("Guardado");
+          showToast(toastMsg);
           loadGlobalShortcuts();
         });
       });
     } else {
       chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-        showToast("Guardado");
+        showToast(toastMsg);
         loadGlobalShortcuts();
       });
     }
@@ -324,9 +325,7 @@ function openGlobalForm(existing) {
     loadGlobalShortcuts();
   });
 
-  if (!existing) {
-    startKeyRecording();
-  }
+  startKeyRecording();
 }
 
 function deleteGlobalShortcut(shortcut) {
