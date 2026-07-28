@@ -32,6 +32,9 @@ const toastMessage = document.getElementById("toastMessage");
 const toggleResults = document.getElementById("toggleResults");
 const welcomeScreen = document.getElementById("welcomeScreen");
 const mainTabs = document.getElementById("mainTabs");
+const addPageShortcutBtn = document.getElementById("addPageShortcutBtn");
+const pickPanel = document.getElementById("pickPanel");
+const backFromPick = document.getElementById("backFromPick");
 
 let currentOrigin = "";
 let currentTabId = null;
@@ -89,8 +92,38 @@ function switchTab(tabName) {
   document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add("active");
   document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
   document.getElementById(`tab-${tabName}`).classList.remove("hidden");
+  if (tabName === "page") {
+    showShortcutsList();
+    loadShortcuts();
+  }
   if (tabName === "global") loadGlobalShortcuts();
 }
+
+function showPickPanel() {
+  pickPanel.classList.remove("hidden");
+  shortcutList.classList.add("hidden");
+  document.querySelector(".page-header").classList.add("hidden");
+}
+
+function showShortcutsList() {
+  pickPanel.classList.add("hidden");
+  shortcutList.classList.remove("hidden");
+  document.querySelector(".page-header").classList.remove("hidden");
+  scanStatus.textContent = "";
+  pickBtn.disabled = false;
+}
+
+addPageShortcutBtn.addEventListener("click", () => {
+  if (!currentOrigin) {
+    showToast("No se detectó la página actual");
+    return;
+  }
+  showPickPanel();
+});
+
+backFromPick.addEventListener("click", () => {
+  showShortcutsList();
+});
 
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -548,7 +581,7 @@ confirmAssign.addEventListener("click", () => {
         showToast("Shortcut guardado");
         closeAssignModal();
         loadShortcuts();
-        switchTab("shortcuts");
+        showShortcutsList();
       }
     }
   );

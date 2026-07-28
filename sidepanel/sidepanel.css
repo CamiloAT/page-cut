@@ -119,6 +119,18 @@ body {
   display: none;
 }
 
+.pick-panel.hidden {
+  display: none;
+}
+
+.page-header.hidden {
+  display: none;
+}
+
+.shortcut-list.hidden {
+  display: none;
+}
+
 .tabs.hidden {
   display: none;
 }
@@ -860,6 +872,41 @@ body {
   line-height: 1.5;
   margin-top: 8px;
   text-align: center;
+}
+
+.page-header {
+  margin-bottom: 10px;
+}
+
+.page-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.pick-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-back-panel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  align-self: flex-start;
+}
+
+.btn-back-panel:hover {
+  color: var(--text-primary);
 }
 
 .global-table {
