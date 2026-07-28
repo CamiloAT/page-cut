@@ -20,8 +20,14 @@
     </header>
 
     <div class="tabs" id="mainTabs">
-      <button class="tab active" data-tab="page">Shortcuts de la página <span id="shortcutCount"></span></button>
-      <button class="tab" data-tab="global">Global</button>
+      <button class="tab active" data-tab="page">
+        <span class="tab-title">Shortcuts de la página</span>
+        <span class="tab-count" id="shortcutCount">Sin shortcuts aún</span>
+      </button>
+      <button class="tab" data-tab="global">
+        <span class="tab-title">Shortcuts globales</span>
+        <span class="tab-count" id="globalShortcutCount">Sin shortcuts aún</span>
+      </button>
     </div>
 
     <div class="welcome-screen hidden" id="welcomeScreen">
@@ -107,7 +113,7 @@
       </div>
 
       <div class="shortcut-list" id="shortcutList">
-        <p class="empty-state">No hay shortcuts en esta página</p>
+        <p class="empty-state">Sin shortcuts aún</p>
       </div>
     </div>
 

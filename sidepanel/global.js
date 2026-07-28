@@ -1,5 +1,6 @@
 const globalList = document.getElementById("globalList");
 const addGlobalBtn = document.getElementById("addGlobalBtn");
+const globalShortcutCount = document.getElementById("globalShortcutCount");
 
 let globalRecording = false;
 let pendingGlobalShortcut = null;
@@ -9,13 +10,14 @@ function loadGlobalShortcuts() {
   chrome.runtime.sendMessage({ action: "getGlobalShortcuts" }, (response) => {
     const shortcuts = (response?.shortcuts || []).filter(s => s && s.key && s.modifiers);
     cachedGlobalShortcuts = shortcuts;
+    globalShortcutCount.textContent = shortcuts.length > 0 ? `${shortcuts.length} shortcuts` : "Sin shortcuts aún";
     renderGlobalShortcuts(shortcuts);
   });
 }
 
 function renderGlobalShortcuts(shortcuts) {
   if (shortcuts.length === 0) {
-    globalList.innerHTML = '<p class="empty-state">No hay shortcuts globales. Agrega uno con el botón de arriba.</p>';
+    globalList.innerHTML = '<p class="empty-state">Sin shortcuts aún</p>';
     return;
   }
 
@@ -491,3 +493,5 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     updateCurrentTab();
   }
 });
+
+loadGlobalShortcuts();

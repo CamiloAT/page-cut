@@ -94,6 +94,21 @@ body {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.tab-title {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.tab-count {
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 .tab:hover {

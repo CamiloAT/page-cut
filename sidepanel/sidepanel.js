@@ -590,7 +590,7 @@ confirmAssign.addEventListener("click", () => {
 function loadShortcuts() {
   if (!currentOrigin) {
     shortcutList.innerHTML = '<p class="empty-state">No disponible</p>';
-    shortcutCount.textContent = "";
+    shortcutCount.textContent = "Sin shortcuts aún";
     return;
   }
   chrome.runtime.sendMessage(
@@ -598,15 +598,15 @@ function loadShortcuts() {
     (response) => {
       const shortcuts = response?.shortcuts || [];
       cachedLocalShortcuts = shortcuts;
+      shortcutCount.textContent = shortcuts.length > 0 ? `${shortcuts.length} shortcuts` : "Sin shortcuts aún";
       renderShortcuts(shortcuts);
-      shortcutCount.textContent = shortcuts.length > 0 ? `${shortcuts.length} shortcut${shortcuts.length > 1 ? "s" : ""}` : "";
     }
   );
 }
 
 function renderShortcuts(shortcuts) {
   if (shortcuts.length === 0) {
-    shortcutList.innerHTML = '<p class="empty-state">No hay shortcuts en esta página</p>';
+    shortcutList.innerHTML = '<p class="empty-state">Sin shortcuts aún</p>';
     return;
   }
   shortcutList.innerHTML = shortcuts
