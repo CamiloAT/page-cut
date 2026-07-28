@@ -9,6 +9,9 @@ const clearSearch = document.getElementById("clearSearch");
 const filterChips = document.getElementById("filterChips");
 const shortcutList = document.getElementById("shortcutList");
 const currentUrl = document.getElementById("currentUrl");
+const currentFavicon = document.getElementById("currentFavicon");
+const currentTitle = document.getElementById("currentTitle");
+const currentHost = document.getElementById("currentHost");
 const shortcutCount = document.getElementById("shortcutCount");
 const assignModal = document.getElementById("assignModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
@@ -44,6 +47,8 @@ let keyRecording = false;
 let recordedKeys = null;
 let resultsVisible = true;
 
+currentFavicon.onerror = () => { currentFavicon.style.display = "none"; };
+
 async function updateCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) return;
@@ -55,7 +60,10 @@ async function updateCurrentTab() {
 
     if (url.protocol === "chrome:" || url.href === "chrome://newtab/") {
       currentOrigin = "";
-      currentUrl.textContent = "Navegador interno";
+      currentFavicon.src = "";
+      currentFavicon.style.display = "none";
+      currentTitle.textContent = "Navegador interno";
+      currentHost.textContent = "";
       currentUrl.title = "";
       welcomeScreen.classList.remove("hidden");
       mainTabs.classList.add("hidden");
@@ -68,7 +76,10 @@ async function updateCurrentTab() {
 
     if (newOrigin !== currentOrigin) {
       currentOrigin = newOrigin;
-      currentUrl.textContent = url.hostname;
+      currentFavicon.src = tab.favIconUrl || "";
+      currentFavicon.style.display = tab.favIconUrl ? "" : "none";
+      currentTitle.textContent = tab.title || url.hostname;
+      currentHost.textContent = url.hostname;
       currentUrl.title = url.href;
       loadShortcuts();
       const activeTab = document.querySelector(".tab.active");
@@ -79,7 +90,10 @@ async function updateCurrentTab() {
     }
   } catch {
     currentOrigin = "";
-    currentUrl.textContent = "Navegador interno";
+    currentFavicon.src = "";
+    currentFavicon.style.display = "none";
+    currentTitle.textContent = "Navegador interno";
+    currentHost.textContent = "";
     currentUrl.title = "";
     welcomeScreen.classList.remove("hidden");
     mainTabs.classList.add("hidden");

@@ -64,15 +64,44 @@ body {
 }
 
 .url-badge {
-  font-size: 11px;
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: var(--bg-secondary);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 20px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.url-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.url-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.url-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+}
+
+.url-host {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tabs {
