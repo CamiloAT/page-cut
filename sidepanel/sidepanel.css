@@ -75,10 +75,11 @@ body {
 }
 
 .url-favicon {
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
   flex-shrink: 0;
+  margin-right: 4px;
 }
 
 .url-info {
