@@ -21,40 +21,40 @@ function renderGlobalShortcuts(shortcuts) {
     return;
   }
 
-  let html = '<div class="global-table">';
-  html += '<div class="global-row global-header-row"><div class="global-col-keys">Tecla</div><div class="global-col-label">Etiqueta</div><div class="global-col-url">URL</div><div class="global-col-actions"></div></div>';
-
-  for (const s of shortcuts) {
-    const keysHtml = buildKeysHtml(s.key, s.modifiers);
-    const newTabBadge = s.newTab ? '<span class="new-tab-badge" title="Abre en pestaña nueva">↗</span>' : '';
-    html += `
-      <div class="global-row">
-        <div class="global-col-keys">${keysHtml}</div>
-        <div class="global-col-label">${escapeHtml(s.label)}${newTabBadge}</div>
-        <div class="global-col-url">${escapeHtml(s.url)}</div>
-        <div class="global-col-actions">
-          <button class="btn-icon btn-test-global" data-url="${escapeAttr(s.url)}" title="Probar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5,3 19,12 5,21"/>
-            </svg>
-          </button>
-          <button class="btn-icon btn-edit-global" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Editar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="btn-icon btn-delete-global" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-      </div>`;
-  }
-
-  html += '</div>';
-  globalList.innerHTML = html;
+  globalList.innerHTML = shortcuts
+    .map(
+      (s) => {
+        const keysHtml = buildKeysHtml(s.key, s.modifiers);
+        const newTabBadge = s.newTab ? '<span class="new-tab-badge" title="Abre en pestaña nueva">↗</span>' : '';
+        return `
+    <div class="shortcut-card">
+      <div class="shortcut-info">
+        <div class="shortcut-text">${escapeHtml(s.label)}${newTabBadge}</div>
+        <div class="shortcut-keys">${keysHtml}</div>
+        <div class="element-url">${escapeHtml(s.url)}</div>
+      </div>
+      <div class="shortcut-actions">
+        <button class="btn-icon btn-test-global" data-url="${escapeAttr(s.url)}" title="Probar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-edit-global" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-delete-global" data-key="${escapeAttr(s.key)}" data-modifiers="${escapeAttr(s.modifiers)}" title="Eliminar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>`;
+      }
+    )
+    .join("");
 
   globalList.querySelectorAll(".btn-test-global").forEach((btn) => {
     btn.addEventListener("click", () => {
