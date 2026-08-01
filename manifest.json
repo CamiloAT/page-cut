@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Page Cut",
-  "version": "1.0",
-  "description": "Asigna shortcuts personalizados a elementos de cualquier página",
+  "version": "1.0.0",
+  "description": "Asigna shortcuts personalizados a elementos de cualquier página y crea atajos globales que navegan a links a elección",
   "permissions": [
     "sidePanel",
     "activeTab",
