@@ -110,7 +110,10 @@ function switchTab(tabName) {
     showShortcutsList();
     loadShortcuts();
   }
-  if (tabName === "global") loadGlobalShortcuts();
+  if (tabName === "global") {
+    hideGlobalPickPanel();
+    loadGlobalShortcuts();
+  }
 }
 
 function showPickPanel() {

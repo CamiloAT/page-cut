@@ -529,6 +529,10 @@ body {
   gap: 6px;
 }
 
+.global-list.hidden {
+  display: none;
+}
+
 .shortcut-card {
   display: flex;
   align-items: center;
@@ -609,6 +613,11 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
+}
+
+#duplicateModal,
+#deleteModal {
+  z-index: 200;
 }
 
 .modal.hidden {
@@ -1009,39 +1018,23 @@ body {
   vertical-align: middle;
 }
 
-.global-form {
+.global-assign-extra {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 12px;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
-.global-form-step {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.global-form-extra.hidden {
+.global-assign-extra.hidden {
   display: none;
 }
 
-.global-key-display {
+.form-group {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-height: 44px;
-  justify-content: center;
-}
-
-.global-key-display.recording {
-  border-color: var(--accent);
-  animation: pulse-border 1.5s ease-in-out infinite;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .key-placeholder {

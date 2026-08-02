@@ -1,6 +1,20 @@
 const globalList = document.getElementById("globalList");
 const addGlobalBtn = document.getElementById("addGlobalBtn");
 const globalShortcutCount = document.getElementById("globalShortcutCount");
+const globalPickPanel = document.getElementById("globalPickPanel");
+const backFromGlobalPick = document.getElementById("backFromGlobalPick");
+const globalRecordBtn = document.getElementById("globalRecordBtn");
+const globalAssignModal = document.getElementById("globalAssignModal");
+const globalAssignBackdrop = document.getElementById("globalAssignBackdrop");
+const closeGlobalAssignModal = document.getElementById("closeGlobalAssignModal");
+const globalAssignKeyDisplay = document.getElementById("globalAssignKeyDisplay");
+const globalAssignExtra = document.getElementById("globalAssignExtra");
+const globalAssignUrl = document.getElementById("globalAssignUrl");
+const globalAssignUrlError = document.getElementById("globalAssignUrlError");
+const globalAssignLabel = document.getElementById("globalAssignLabel");
+const globalAssignNewTab = document.getElementById("globalAssignNewTab");
+const cancelGlobalAssign = document.getElementById("cancelGlobalAssign");
+const confirmGlobalAssign = document.getElementById("confirmGlobalAssign");
 
 let globalRecording = false;
 let pendingGlobalShortcut = null;
@@ -74,7 +88,7 @@ function renderGlobalShortcuts(shortcuts) {
       const key = btn.dataset.key;
       const modifiers = btn.dataset.modifiers;
       const existing = shortcuts.find((s) => s.key === key && s.modifiers === modifiers);
-      if (existing) openGlobalForm(existing);
+      if (existing) openGlobalAssignModal(existing);
     });
   });
 
@@ -98,7 +112,27 @@ function buildKeysHtml(key, modifiers) {
 }
 
 addGlobalBtn.addEventListener("click", () => {
-  openGlobalForm(null);
+  showGlobalPickPanel();
+});
+
+backFromGlobalPick.addEventListener("click", () => {
+  hideGlobalPickPanel();
+});
+
+function showGlobalPickPanel() {
+  globalPickPanel.classList.remove("hidden");
+  document.querySelector("#tab-global .page-header").classList.add("hidden");
+  globalList.classList.add("hidden");
+}
+
+function hideGlobalPickPanel() {
+  globalPickPanel.classList.add("hidden");
+  document.querySelector("#tab-global .page-header").classList.remove("hidden");
+  globalList.classList.remove("hidden");
+}
+
+globalRecordBtn.addEventListener("click", () => {
+  openGlobalAssignModal(null);
 });
 
 function cleanupGlobalKeyRecording() {
@@ -107,6 +141,37 @@ function cleanupGlobalKeyRecording() {
     document.removeEventListener("keydown", onGlobalRecordKeydown, true);
   }
 }
+
+function openGlobalAssignModal(existing) {
+  cleanupGlobalKeyRecording();
+  pendingGlobalShortcut = existing ? { ...existing } : null;
+
+  globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+  globalAssignKeyDisplay.classList.add("recording");
+  globalAssignExtra.classList.add("hidden");
+  globalAssignUrl.value = existing ? existing.url : "";
+  globalAssignUrlError.classList.remove("visible");
+  globalAssignUrl.classList.remove("error");
+  globalAssignLabel.value = existing ? (existing.label || "") : "";
+  globalAssignNewTab.checked = existing ? !!existing.newTab : false;
+  confirmGlobalAssign.disabled = true;
+  globalAssignModal.classList.remove("hidden");
+
+  globalRecording = true;
+  document.addEventListener("keydown", onGlobalRecordKeydown, true);
+}
+
+function closeGlobalAssignModalFn() {
+  cleanupGlobalKeyRecording();
+  globalAssignModal.classList.add("hidden");
+  globalAssignKeyDisplay.classList.remove("recording");
+  globalAssignExtra.classList.add("hidden");
+  confirmGlobalAssign.disabled = true;
+}
+
+closeGlobalAssignModal.addEventListener("click", closeGlobalAssignModalFn);
+globalAssignBackdrop.addEventListener("click", closeGlobalAssignModalFn);
+cancelGlobalAssign.addEventListener("click", closeGlobalAssignModalFn);
 
 function onGlobalRecordKeydown(e) {
   if (!globalRecording) return;
@@ -127,17 +192,14 @@ function onGlobalRecordKeydown(e) {
   }
 
   const key = e.key.toUpperCase();
-  const keyDisplay = document.getElementById("globalKeyDisplay");
-  const saveBtn = document.getElementById("globalSaveForm");
-  if (!keyDisplay) return;
 
-  keyDisplay.classList.remove("recording");
+  globalAssignKeyDisplay.classList.remove("recording");
 
   if (isReserved(key, modifiers.join("+"))) {
     const display = [...modifiers, key].join(" + ");
     globalRecording = false;
     document.removeEventListener("keydown", onGlobalRecordKeydown, true);
-    keyDisplay.innerHTML = `
+    globalAssignKeyDisplay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
         ${renderKeyCombination(display, "danger")}
         <span style="color:var(--text-muted);font-size:11px;">Reservado por el navegador</span>
@@ -145,14 +207,14 @@ function onGlobalRecordKeydown(e) {
       </div>`;
     document.getElementById("globalRetryKey").addEventListener("click", () => {
       globalRecording = true;
-      keyDisplay.classList.add("recording");
-      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      globalAssignKeyDisplay.classList.add("recording");
+      globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
       document.addEventListener("keydown", onGlobalRecordKeydown, true);
     });
     pendingGlobalShortcut = pendingGlobalShortcut || {};
     delete pendingGlobalShortcut.key;
     delete pendingGlobalShortcut.modifiers;
-    if (saveBtn) saveBtn.disabled = true;
+    confirmGlobalAssign.disabled = true;
     return;
   }
 
@@ -170,32 +232,29 @@ function onGlobalRecordKeydown(e) {
       pendingGlobalShortcut.key = key;
       pendingGlobalShortcut.modifiers = modifiers.join("+");
 
-      keyDisplay.innerHTML = `
+      globalAssignKeyDisplay.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
           ${renderKeyCombination(display, "success")}
           <button class="btn-retry" id="globalRetryKey">Cambiar tecla</button>
         </div>`;
       document.getElementById("globalRetryKey").addEventListener("click", () => {
         globalRecording = true;
-        keyDisplay.classList.add("recording");
-        keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
-        globalFormExtra.classList.add("hidden");
+        globalAssignKeyDisplay.classList.add("recording");
+        globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+        globalAssignExtra.classList.add("hidden");
         delete pendingGlobalShortcut.key;
         delete pendingGlobalShortcut.modifiers;
-        if (saveBtn) saveBtn.disabled = true;
+        confirmGlobalAssign.disabled = true;
         document.addEventListener("keydown", onGlobalRecordKeydown, true);
       });
 
-      globalFormExtra.classList.remove("hidden");
-      if (saveBtn) {
-        const urlInput = document.getElementById("globalUrlInput");
-        const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
-        saveBtn.disabled = !hasUrl;
-      }
+      globalAssignExtra.classList.remove("hidden");
+      const hasUrl = globalAssignUrl.value.trim().startsWith("http");
+      confirmGlobalAssign.disabled = !hasUrl;
     }, () => {
       globalRecording = true;
-      keyDisplay.classList.add("recording");
-      keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+      globalAssignKeyDisplay.classList.add("recording");
+      globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
       document.addEventListener("keydown", onGlobalRecordKeydown, true);
     });
     return;
@@ -205,143 +264,84 @@ function onGlobalRecordKeydown(e) {
   pendingGlobalShortcut.key = key;
   pendingGlobalShortcut.modifiers = modifiers.join("+");
 
-  keyDisplay.innerHTML = `
+  globalAssignKeyDisplay.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
       ${renderKeyCombination(display, "success")}
       <button class="btn-retry" id="globalRetryKey">Cambiar tecla</button>
     </div>`;
   document.getElementById("globalRetryKey").addEventListener("click", () => {
     globalRecording = true;
-    keyDisplay.classList.add("recording");
-    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
-    globalFormExtra.classList.add("hidden");
+    globalAssignKeyDisplay.classList.add("recording");
+    globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    globalAssignExtra.classList.add("hidden");
     delete pendingGlobalShortcut.key;
     delete pendingGlobalShortcut.modifiers;
-    if (saveBtn) saveBtn.disabled = true;
+    confirmGlobalAssign.disabled = true;
     document.addEventListener("keydown", onGlobalRecordKeydown, true);
   });
 
-  globalFormExtra.classList.remove("hidden");
-  if (saveBtn) {
-    const urlInput = document.getElementById("globalUrlInput");
-    const hasUrl = urlInput && urlInput.value.trim().startsWith("http");
-    saveBtn.disabled = !hasUrl;
-  }
+  globalAssignExtra.classList.remove("hidden");
+  const hasUrl = globalAssignUrl.value.trim().startsWith("http");
+  confirmGlobalAssign.disabled = !hasUrl;
 }
 
-function openGlobalForm(existing) {
-  cleanupGlobalKeyRecording();
+globalAssignUrl.addEventListener("input", () => {
+  const hasKey = pendingGlobalShortcut && pendingGlobalShortcut.key;
+  const val = globalAssignUrl.value.trim();
+  const hasUrl = val.startsWith("http");
+  confirmGlobalAssign.disabled = !(hasKey && hasUrl);
+  if (val.length === 0) {
+    globalAssignUrl.classList.remove("error");
+    globalAssignUrlError.classList.remove("visible");
+  } else if (!hasUrl) {
+    globalAssignUrl.classList.add("error");
+    globalAssignUrlError.classList.add("visible");
+  } else {
+    globalAssignUrl.classList.remove("error");
+    globalAssignUrlError.classList.remove("visible");
+  }
+});
 
-  pendingGlobalShortcut = existing ? { ...existing } : null;
-
-  const formHtml = `
-    <div class="global-form">
-      <div class="global-form-step">
-        <label class="form-label">Presiona la combinación de teclas:</label>
-        <div class="global-key-display" id="globalKeyDisplay">
-          <span class="key-placeholder">Presiona una combinación de teclas...</span>
-        </div>
-      </div>
-      <div class="global-form-extra hidden" id="globalFormExtra">
-        <div class="global-form-step">
-          <label class="form-label" for="globalUrlInput">URL de destino:</label>
-          <input type="url" class="form-input" id="globalUrlInput" placeholder="https://ejemplo.com" value="${existing ? escapeAttr(existing.url) : ''}">
-          <div class="form-error" id="globalUrlError">La URL debe comenzar con https://</div>
-        </div>
-        <div class="global-form-step">
-          <label class="form-label" for="globalLabelInput">Etiqueta (opcional):</label>
-          <input type="text" class="form-input" id="globalLabelInput" placeholder="Mi shortcut" value="${existing ? escapeAttr(existing.label || '') : ''}">
-        </div>
-        <label class="checkbox-label">
-          <input type="checkbox" id="globalNewTab" ${existing && existing.newTab ? 'checked' : ''}>
-          <span>Abrir en pestaña nueva</span>
-        </label>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" id="globalCancelForm">Cancelar</button>
-        <button class="btn btn-primary" id="globalSaveForm" disabled>Guardar</button>
-      </div>
-    </div>
-  `;
-
-  globalList.innerHTML = formHtml;
-
-  const keyDisplay = document.getElementById("globalKeyDisplay");
-  const globalFormExtra = document.getElementById("globalFormExtra");
-  const urlInput = document.getElementById("globalUrlInput");
-  const urlError = document.getElementById("globalUrlError");
-  const labelInput = document.getElementById("globalLabelInput");
-  const newTabCheckbox = document.getElementById("globalNewTab");
-  const saveBtn = document.getElementById("globalSaveForm");
-  const cancelBtn = document.getElementById("globalCancelForm");
-
-  function startKeyRecording() {
-    globalRecording = true;
-    keyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
-    keyDisplay.classList.add("recording");
-    document.addEventListener("keydown", onGlobalRecordKeydown, true);
+confirmGlobalAssign.addEventListener("click", () => {
+  const url = globalAssignUrl.value.trim();
+  if (!url.startsWith("http")) {
+    showToast("URL inválida (debe empezar con http)");
+    return;
   }
 
-  urlInput.addEventListener("input", () => {
-    const hasKey = pendingGlobalShortcut && pendingGlobalShortcut.key;
-    const val = urlInput.value.trim();
-    const hasUrl = val.startsWith("http");
-    saveBtn.disabled = !(hasKey && hasUrl);
-    if (val.length === 0) {
-      urlInput.classList.remove("error");
-      urlError.classList.remove("visible");
-    } else if (!hasUrl) {
-      urlInput.classList.add("error");
-      urlError.classList.add("visible");
-    } else {
-      urlInput.classList.remove("error");
-      urlError.classList.remove("visible");
-    }
-  });
+  const shortcut = {
+    key: pendingGlobalShortcut.key,
+    modifiers: pendingGlobalShortcut.modifiers,
+    url: url,
+    label: globalAssignLabel.value.trim() || url.replace(/^https?:\/\//, "").split("/")[0],
+    newTab: globalAssignNewTab.checked,
+  };
 
-  saveBtn.addEventListener("click", () => {
-    const url = urlInput.value.trim();
-    if (!url.startsWith("http")) {
-      showToast("URL inválida (debe empezar con http)");
-      return;
-    }
+  const existing = pendingGlobalShortcut && pendingGlobalShortcut.key && pendingGlobalShortcut.url ? pendingGlobalShortcut : null;
+  const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
 
-    const shortcut = {
-      key: pendingGlobalShortcut.key,
-      modifiers: pendingGlobalShortcut.modifiers,
-      url: url,
-      label: labelInput.value.trim() || url.replace(/^https?:\/\//, "").split("/")[0],
-      newTab: newTabCheckbox.checked,
-    };
-
-    const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
-
-    const toastMsg = existing ? "Actualizado" : "Guardado";
-    if (keyChanged) {
-      chrome.runtime.sendMessage({
-        action: "deleteGlobalShortcut",
-        command: `${existing.key}|${existing.modifiers}`,
-      }, () => {
-        chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-          showToast(toastMsg);
-          loadGlobalShortcuts();
-        });
-      });
-    } else {
+  const toastMsg = existing ? "Actualizado" : "Guardado";
+  if (keyChanged) {
+    chrome.runtime.sendMessage({
+      action: "deleteGlobalShortcut",
+      command: `${existing.key}|${existing.modifiers}`,
+    }, () => {
       chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
         showToast(toastMsg);
+        closeGlobalAssignModalFn();
+        hideGlobalPickPanel();
         loadGlobalShortcuts();
       });
-    }
-  });
-
-  cancelBtn.addEventListener("click", () => {
-    cleanupGlobalKeyRecording();
-    loadGlobalShortcuts();
-  });
-
-  startKeyRecording();
-}
+    });
+  } else {
+    chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
+      showToast(toastMsg);
+      closeGlobalAssignModalFn();
+      hideGlobalPickPanel();
+      loadGlobalShortcuts();
+    });
+  }
+});
 
 function deleteGlobalShortcut(shortcut) {
   chrome.runtime.sendMessage({
