@@ -1018,6 +1018,11 @@ body {
   vertical-align: middle;
 }
 
+#globalRecordBtn {
+  margin-top: 6px;
+  margin-bottom: 25px;
+}
+
 .global-assign-extra {
   display: flex;
   flex-direction: column;
