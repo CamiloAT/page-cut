@@ -63,8 +63,14 @@ async function updateCurrentTab() {
       currentFavicon.src = "";
       currentFavicon.style.display = "none";
       currentTitle.textContent = "Navegador interno";
-      currentHost.textContent = "";
-      currentUrl.title = "";
+      if (url.href === "chrome://newtab/" || url.href === "chrome://new-tab-page/") {
+        currentHost.textContent = "Página nueva";
+      } else if (url.href.includes("extension")) {
+        currentHost.textContent = "Extensiones";
+      } else {
+        currentHost.textContent = "Configuración del navegador";
+      }
+      currentUrl.title = url.href;
       welcomeScreen.classList.remove("hidden");
       mainTabs.classList.add("hidden");
       document.querySelectorAll(".tab-content").forEach((c) => c.classList.add("hidden"));
@@ -93,7 +99,7 @@ async function updateCurrentTab() {
     currentFavicon.src = "";
     currentFavicon.style.display = "none";
     currentTitle.textContent = "Navegador interno";
-    currentHost.textContent = "";
+    currentHost.textContent = "Configuración del navegador";
     currentUrl.title = "";
     welcomeScreen.classList.remove("hidden");
     mainTabs.classList.add("hidden");
