@@ -907,6 +907,7 @@
 
   function handleKeydown(e) {
     if (pickMode) return;
+    if (keyRecording) return;
     if (
       e.target.tagName === "INPUT" ||
       e.target.tagName === "TEXTAREA" ||

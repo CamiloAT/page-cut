@@ -4,6 +4,7 @@
 
   let currentGlobalShortcuts = [];
   let alive = true;
+  let keyRecording = false;
 
   function getModifiersFromEvent(e) {
     const mods = [];
@@ -16,6 +17,7 @@
 
   function handleKeydown(e) {
     if (!alive) return;
+    if (keyRecording) return;
     if (
       e.target.tagName === "INPUT" ||
       e.target.tagName === "TEXTAREA" ||
@@ -71,4 +73,15 @@
     alive = false;
     clearInterval(pollId);
   }
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "startKeyRecording") {
+      keyRecording = true;
+      sendResponse({ ok: true });
+    }
+    if (message.action === "stopKeyRecording") {
+      keyRecording = false;
+      sendResponse({ ok: true });
+    }
+  });
 })();
