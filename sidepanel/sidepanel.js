@@ -850,3 +850,21 @@ document.addEventListener("keydown", (e) => {
 });
 
 updateCurrentTab();
+
+const themeToggle = document.getElementById("themeToggle");
+
+function applyTheme(dark) {
+  document.documentElement.classList.toggle("dark", dark);
+  chrome.storage.local.set({ theme: dark ? "dark" : "light" });
+}
+
+chrome.storage.local.get("theme", (data) => {
+  if (data.theme === "dark") {
+    document.documentElement.classList.add("dark");
+  }
+});
+
+themeToggle.addEventListener("click", () => {
+  const isDark = document.documentElement.classList.contains("dark");
+  applyTheme(!isDark);
+});
