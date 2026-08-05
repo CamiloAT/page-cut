@@ -76,8 +76,16 @@ body {
 .logo h1 {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
   letter-spacing: -0.3px;
+}
+
+.logo-page {
+  color: var(--text-primary);
+}
+
+.logo-cut {
+  color: var(--accent-dark);
+}
 }
 
 .url-badge {
@@ -1193,7 +1201,11 @@ body {
 .welcome-screen h2 {
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-primary);
+}
+
+.welcome-logo {
+  width: 80px;
+  height: 80px;
 }
 
 .welcome-screen p {
