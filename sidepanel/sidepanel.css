@@ -86,7 +86,6 @@ body {
 .logo-cut {
   color: var(--accent-dark);
 }
-}
 
 .url-badge {
   display: flex;
@@ -97,6 +96,10 @@ body {
   border-radius: 20px;
   max-width: 100%;
   min-width: 0;
+}
+
+.dark .url-badge {
+  border: 1px solid #4a4a4e;
 }
 
 .url-favicon {
