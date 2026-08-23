@@ -56,12 +56,11 @@ page-cut/
 │   ├── icon16.png             ← 16x16 icon (toolbar)
 │   ├── icon48.png             ← 48x48 icon (extensions page)
 │   └── icon128.png            ← 128x128 icon (welcome screen)
-├── sidepanel/
-│   ├── sidepanel.html         ← Side panel structure
-│   ├── sidepanel.js           ← Main panel logic
-│   ├── sidepanel.css          ← Styles (light/dark theme)
-│   └── global.js              ← Global shortcuts logic
-└── test-page.html             ← Test page
+└── sidepanel/
+    ├── sidepanel.html         ← Side panel structure
+    ├── sidepanel.js           ← Main panel logic
+    ├── sidepanel.css          ← Styles (light/dark theme)
+    └── global.js              ← Global shortcuts logic
 ```
 
 ---
