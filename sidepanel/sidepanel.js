@@ -138,7 +138,7 @@ function showShortcutsList() {
 
 addPageShortcutBtn.addEventListener("click", () => {
   if (!currentOrigin) {
-    showToast("No se detectó la página actual");
+    showToast("No se detectó la página actual", "warning");
     return;
   }
   showPickPanel();
@@ -173,7 +173,7 @@ toggleResults.addEventListener("click", toggleResultsPanel);
 
 pickBtn.addEventListener("click", () => {
   if (!currentOrigin) {
-    showToast("No se detectó la página actual");
+    showToast("No se detectó la página actual", "warning");
     return;
   }
   scanStatus.textContent = "Mueve el mouse y haz clic en un elemento...";
@@ -191,7 +191,7 @@ let activeFilter = "all";
 
 scanBtn.addEventListener("click", async () => {
   if (!currentOrigin) {
-    showToast("No se detectó la página actual");
+    showToast("No se detectó la página actual", "warning");
     return;
   }
   scanBtn.disabled = true;
@@ -403,7 +403,7 @@ confirmEdit.addEventListener("click", () => {
         { action: "saveShortcut", url: currentOrigin, shortcut: newShortcut },
         (response) => {
           if (response?.success) {
-            showToast("Shortcut actualizado");
+            showToast("Shortcut actualizado", "info");
             closeEditModal();
             loadShortcuts();
           }
@@ -459,7 +459,7 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey) modifiers.push("Meta");
 
   if (modifiers.length === 0) {
-    showToast("Usa Ctrl, Shift o Alt como modificador");
+    showToast("Usa Ctrl, Shift o Alt como modificador", "warning");
     return;
   }
 
@@ -601,7 +601,7 @@ confirmAssign.addEventListener("click", () => {
     { action: "saveShortcut", url: currentOrigin, shortcut },
     (response) => {
       if (response?.success) {
-        showToast("Shortcut guardado");
+        showToast("Shortcut guardado", "success");
         closeAssignModal();
         loadShortcuts();
         showShortcutsList();
@@ -699,7 +699,7 @@ function renderShortcuts(shortcuts) {
             modifiers: btn.dataset.modifiers,
           },
           () => {
-            showToast("Eliminado");
+            showToast("Eliminado", "error");
             loadShortcuts();
           }
         );
@@ -821,8 +821,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   }
 });
 
-function showToast(msg) {
+function showToast(msg, type) {
   toastMessage.textContent = msg;
+  toast.className = "toast";
+  if (type) toast.classList.add(type);
   toast.classList.remove("hidden");
   setTimeout(() => toast.classList.add("hidden"), 2000);
 }

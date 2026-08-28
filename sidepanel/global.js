@@ -221,7 +221,7 @@ function onGlobalRecordKeydown(e) {
   if (e.metaKey) modifiers.push("Meta");
 
   if (modifiers.length === 0) {
-    showToast("Usa Ctrl, Shift o Alt como modificador");
+    showToast("Usa Ctrl, Shift o Alt como modificador", "warning");
     return;
   }
 
@@ -339,7 +339,7 @@ globalAssignUrl.addEventListener("input", () => {
 confirmGlobalAssign.addEventListener("click", () => {
   const url = globalAssignUrl.value.trim();
   if (!url.startsWith("http")) {
-    showToast("URL inválida (debe empezar con http)");
+    showToast("URL inválida (debe empezar con http)", "warning");
     return;
   }
 
@@ -354,15 +354,15 @@ confirmGlobalAssign.addEventListener("click", () => {
   const existing = editingOriginal;
   const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
 
-  const toastMsg = existing ? "Actualizado" : "Guardado";
   if (existing) {
+    const toastType = "info";
     if (keyChanged) {
       chrome.runtime.sendMessage({
         action: "deleteGlobalShortcut",
         command: `${existing.key}|${existing.modifiers}`,
       }, () => {
         chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-          showToast(toastMsg);
+          showToast("Actualizado", toastType);
           closeGlobalAssignModalFn();
           hideGlobalPickPanel();
           loadGlobalShortcuts();
@@ -370,7 +370,7 @@ confirmGlobalAssign.addEventListener("click", () => {
       });
     } else {
       chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-        showToast(toastMsg);
+        showToast("Actualizado", toastType);
         closeGlobalAssignModalFn();
         hideGlobalPickPanel();
         loadGlobalShortcuts();
@@ -378,7 +378,7 @@ confirmGlobalAssign.addEventListener("click", () => {
     }
   } else {
     chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
-      showToast(toastMsg);
+      showToast("Guardado", "success");
       closeGlobalAssignModalFn();
       hideGlobalPickPanel();
       loadGlobalShortcuts();
@@ -391,7 +391,7 @@ function deleteGlobalShortcut(shortcut) {
     action: "deleteGlobalShortcut",
     command: `${shortcut.key}|${shortcut.modifiers}`,
   }, () => {
-    showToast("Eliminado");
+    showToast("Eliminado", "error");
     loadGlobalShortcuts();
   });
 }
