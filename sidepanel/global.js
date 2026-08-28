@@ -18,6 +18,7 @@ const confirmGlobalAssign = document.getElementById("confirmGlobalAssign");
 
 let globalRecording = false;
 let pendingGlobalShortcut = null;
+let editingOriginal = null;
 let cachedGlobalShortcuts = [];
 
 function loadGlobalShortcuts() {
@@ -142,23 +143,55 @@ function cleanupGlobalKeyRecording() {
   }
 }
 
-function openGlobalAssignModal(existing) {
+function startGlobalKeyRecording() {
   cleanupGlobalKeyRecording();
-  pendingGlobalShortcut = existing ? { ...existing } : null;
-
+  pendingGlobalShortcut = pendingGlobalShortcut || {};
   globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
   globalAssignKeyDisplay.classList.add("recording");
   globalAssignExtra.classList.add("hidden");
+  confirmGlobalAssign.disabled = true;
+  globalRecording = true;
+  document.addEventListener("keydown", onGlobalRecordKeydown, true);
+}
+
+function openGlobalAssignModal(existing) {
+  cleanupGlobalKeyRecording();
+  pendingGlobalShortcut = existing ? { ...existing } : null;
+  editingOriginal = existing ? { ...existing } : null;
+
   globalAssignUrl.value = existing ? existing.url : "";
   globalAssignUrlError.classList.remove("visible");
   globalAssignUrl.classList.remove("error");
   globalAssignLabel.value = existing ? (existing.label || "") : "";
   globalAssignNewTab.checked = existing ? !!existing.newTab : false;
-  confirmGlobalAssign.disabled = true;
-  globalAssignModal.classList.remove("hidden");
 
-  globalRecording = true;
-  document.addEventListener("keydown", onGlobalRecordKeydown, true);
+  if (existing) {
+    globalAssignKeyDisplay.classList.remove("recording");
+    const display = [...(existing.modifiers ? existing.modifiers.split("+") : []), existing.key].join(" + ");
+    globalAssignKeyDisplay.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        ${renderKeyCombination(display, "success")}
+        <button class="btn-retry" id="globalRetryKey">Cambiar tecla</button>
+      </div>`;
+    document.getElementById("globalRetryKey").addEventListener("click", () => {
+      delete pendingGlobalShortcut.key;
+      delete pendingGlobalShortcut.modifiers;
+      confirmGlobalAssign.disabled = true;
+      startGlobalKeyRecording();
+    });
+    globalAssignExtra.classList.remove("hidden");
+    const hasUrl = globalAssignUrl.value.trim().startsWith("http");
+    confirmGlobalAssign.disabled = !hasUrl;
+  } else {
+    globalAssignKeyDisplay.innerHTML = '<span class="key-placeholder">Presiona una combinación de teclas...</span>';
+    globalAssignKeyDisplay.classList.add("recording");
+    globalAssignExtra.classList.add("hidden");
+    confirmGlobalAssign.disabled = true;
+    globalRecording = true;
+    document.addEventListener("keydown", onGlobalRecordKeydown, true);
+  }
+
+  globalAssignModal.classList.remove("hidden");
 }
 
 function closeGlobalAssignModalFn() {
@@ -167,6 +200,7 @@ function closeGlobalAssignModalFn() {
   globalAssignKeyDisplay.classList.remove("recording");
   globalAssignExtra.classList.add("hidden");
   confirmGlobalAssign.disabled = true;
+  editingOriginal = null;
 }
 
 closeGlobalAssignModal.addEventListener("click", closeGlobalAssignModalFn);
@@ -317,22 +351,31 @@ confirmGlobalAssign.addEventListener("click", () => {
     newTab: globalAssignNewTab.checked,
   };
 
-  const existing = pendingGlobalShortcut && pendingGlobalShortcut.key && pendingGlobalShortcut.url ? pendingGlobalShortcut : null;
+  const existing = editingOriginal;
   const keyChanged = existing && (existing.key !== shortcut.key || existing.modifiers !== shortcut.modifiers);
 
   const toastMsg = existing ? "Actualizado" : "Guardado";
-  if (keyChanged) {
-    chrome.runtime.sendMessage({
-      action: "deleteGlobalShortcut",
-      command: `${existing.key}|${existing.modifiers}`,
-    }, () => {
+  if (existing) {
+    if (keyChanged) {
+      chrome.runtime.sendMessage({
+        action: "deleteGlobalShortcut",
+        command: `${existing.key}|${existing.modifiers}`,
+      }, () => {
+        chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
+          showToast(toastMsg);
+          closeGlobalAssignModalFn();
+          hideGlobalPickPanel();
+          loadGlobalShortcuts();
+        });
+      });
+    } else {
       chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
         showToast(toastMsg);
         closeGlobalAssignModalFn();
         hideGlobalPickPanel();
         loadGlobalShortcuts();
       });
-    });
+    }
   } else {
     chrome.runtime.sendMessage({ action: "saveGlobalShortcut", shortcut }, () => {
       showToast(toastMsg);
